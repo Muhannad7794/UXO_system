@@ -1,0 +1,58 @@
+UXO_system/
+├── .env                             # Environment variables for Docker and Django
+├── .gitignore                       # Git ignore rules (e.g., __pycache__, .env)
+├── Dockerfile                       # Backend Docker image definition
+├── docker-compose.yml               # Service orchestration: backend + DB
+├── manage.py                        # Django entry point
+├── README.md                        # Project overview and documentation
+├── requirements.txt                 # Python dependencies
+│
+├── uxo_backend/                     # Django project settings
+│   ├── __init__.py
+│   ├── settings.py
+│   ├── urls.py
+│   ├── asgi.py
+│   └── wsgi.py
+│
+├── danger_score/                    # Risk score calculation logic
+│   ├── __init__.py
+│   ├── admin.py
+│   ├── apps.py
+│   ├── models.py
+│   ├── views.py
+│   ├── serializers.py
+│   ├── urls.py
+│   └── tests.py
+│
+├── uxo_records/                     # Structured UXO data storage
+│   ├── __init__.py
+│   ├── admin.py
+│   ├── apps.py
+│   ├── models.py
+│   ├── views.py
+│   ├── serializers.py
+│   ├── urls.py
+│   └── tests.py
+│
+├── citizens_reports/               # Civilian-submitted UXO reports
+│   ├── __init__.py
+│   ├── admin.py
+│   ├── apps.py
+│   ├── models.py
+│   ├── views.py
+│   ├── serializers.py
+│   ├── urls.py
+│   └── tests.py
+│
+├── feature_engineering/            # Raw → engineered dataset builder
+│   ├── __init__.py
+│   ├── admin.py
+│   ├── apps.py
+│   ├── models.py
+│   ├── views.py
+│   ├── serializers.py
+│   ├── urls.py
+│   ├── tests.py
+│   └── processing/                 # Optional logic module (e.g., utils.py)
+│       ├── __init__.py
+│       └── utils.py                # Burial depth, age, condition calculators
