@@ -43,16 +43,3 @@ UXO_system/
 │   ├── serializers.py
 │   ├── urls.py
 │   └── tests.py
-│
-├── feature_engineering/            # Raw → engineered dataset builder
-│   ├── __init__.py
-│   ├── admin.py
-│   ├── apps.py
-│   ├── models.py
-│   ├── views.py
-│   ├── serializers.py
-│   ├── urls.py
-│   ├── tests.py
-│   └── processing/                 # Optional logic module (e.g., utils.py)
-│       ├── __init__.py
-│       └── utils.py                # Burial depth, age, condition calculators
