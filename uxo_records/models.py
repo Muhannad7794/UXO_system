@@ -9,6 +9,7 @@ class UXORecord(models.Model):
     ordnance_condition = models.CharField(max_length=50)
     ordnance_age = models.CharField(max_length=20)
     population_estimate = models.PositiveIntegerField()
+    danger_score = models.FloatField(null=True, blank=True)
 
     class Meta:
         verbose_name = "UXO Record"
