@@ -1,8 +1,10 @@
 UXO_system/
+├── .dockerignore
 ├── .env                             # Environment variables for Docker and Django
 ├── .gitignore                       # Git ignore rules (e.g., __pycache__, .env)
+├── dir_structure_txt  
+├── docker-compose.yml               # Service orchestration: backend + DB                     
 ├── Dockerfile                       # Backend Docker image definition
-├── docker-compose.yml               # Service orchestration: backend + DB
 ├── manage.py                        # Django entry point
 ├── README.md                        # Project overview and documentation
 ├── requirements.txt                 # Python dependencies
@@ -16,6 +18,11 @@ UXO_system/
 │
 ├── danger_score/                    # Risk score calculation logic
 │   ├── __init__.py
+│   ├── calculators/
+│   │       ├── danger_score_logic.py                 # Main loigic for calculating the danger score
+│   ├── management/
+│   │       ├── commands/
+│   │              ├── update_danger_scores.py        # Triggered manually to calculate danger score for existing records
 │   ├── admin.py
 │   ├── apps.py
 │   ├── models.py
@@ -31,6 +38,7 @@ UXO_system/
 │   ├── models.py
 │   ├── views.py
 │   ├── serializers.py
+│   ├── signals.py                  # Triggers danger score calculation upon adding new record(s)
 │   ├── urls.py
 │   └── tests.py
 │
