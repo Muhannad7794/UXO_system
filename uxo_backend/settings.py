@@ -35,7 +35,6 @@ INSTALLED_APPS = [
     "rest_framework",
     "drf_spectacular",
     # local apps
-    "feature_engineering",
     "citizens_reports",
     "uxo_records",
     "danger_score",
