@@ -26,6 +26,7 @@ class UXORecordListCreateView(generics.ListCreateAPIView):
         "burial_depth_cm",
         "ordnance_age",
         "population_estimate",
+        "danger_score",
     ]
 
 

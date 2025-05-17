@@ -14,4 +14,5 @@ class UXORecordSerializer(serializers.ModelSerializer):
             "ordnance_condition",
             "ordnance_age",
             "population_estimate",
+            "danger_score",
         ]
