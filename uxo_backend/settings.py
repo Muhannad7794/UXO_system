@@ -138,16 +138,28 @@ REST_FRAMEWORK = {
 }
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": "UXO Prioritization & Risk Assessment API",
+    "TITLE": "UXO Prioritization API",
     "DESCRIPTION": (
-        "This API powers a modular backend system for UXO (Unexploded Ordnance) data analysis and risk prioritization "
-        "in post-conflict regions such as Syria. It includes services for uploading and processing raw UXO datasets, "
-        "feature engineering (e.g., ordnance age, burial depth, condition), risk score computation, and structured storage. "
-        "Built with Django REST Framework and designed for future integration with a frontend dashboard, citizen reports, "
-        "and optional visual recognition services."
+        "API backend for the UXO Prioritization and Risk Assessment System.\n\n"
+        "This API allows users to:\n"
+        "- View UXO records across regions\n"
+        "- Filter/search by region, ordnance type, and condition\n"
+        "- Create and manage UXO entries (authenticated users only)\n"
+        "\nSecurity Note:\n"
+        "Write operations (POST, PATCH, DELETE) require authentication."
     ),
     "VERSION": "1.0.0",
     "SCHEMA_PATH_PREFIX": "/api/v1",
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 10,
+    "SWAGGER_UI_SETTINGS": {
+        "deepLinking": True,
+        "defaultModelRendering": "example",
+        "defaultModelsExpandDepth": -1,
+        "docExpansion": "none",
+        "filter": True,
+        "persistAuthorization": True,
+    },
 }
