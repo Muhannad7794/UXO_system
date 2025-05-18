@@ -8,15 +8,29 @@ from danger_score.calculators.danger_score_logic import calculate_danger_score
 @receiver(pre_save, sender=UXORecord)
 def assign_danger_score(sender, instance, **kwargs):
     try:
-        # Convert burial depth and age from string to float, stripping ranges like "11–13"
-        burial_depth = float(instance.burial_depth_cm.split("–")[0])
-        age = float(instance.ordnance_age.split("–")[0])
-        quantity = 1  # Optional: Add quantity support later
+        # Handle ordnance_age
+        age_str = instance.ordnance_age
+        age = float(age_str.split("–")[0]) if "–" in age_str else float(age_str)
+
+        # Handle uxo_count
+        uxo_str = instance.uxo_count
+        try:
+            uxo_count = (
+                float(uxo_str.split("–")[0]) if "–" in uxo_str else float(uxo_str)
+            )
+        except ValueError:
+            # Fallback mapping for descriptive text
+            descriptive_map = {
+                "High density cluster munition remnants": 100,
+                "Medium density cluster munition remnants": 50,
+                "Low density cluster munition remnants": 10,
+            }
+            uxo_count = descriptive_map.get(uxo_str.strip(), 0)
 
         instance.danger_score = calculate_danger_score(
             munition_type=instance.ordnance_type,
-            quantity=quantity,
-            burial_depth=burial_depth,
+            uxo_count=uxo_count,
+            burial_depth_cm=instance.burial_depth_cm,
             ordnance_age=age,
             population_estimate=instance.population_estimate,
             environment=instance.environmental_conditions,

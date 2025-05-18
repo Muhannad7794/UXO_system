@@ -1,5 +1,4 @@
 # danger_score/calculators/danger_score_logic.py
-
 from typing import Optional
 
 
@@ -15,19 +14,19 @@ def normalize_munition_type(munition_type: str) -> float:
     return mapping.get(munition_type, 0.0)
 
 
-def normalize_quantity(quantity: int) -> float:
-    if quantity > 100:
+def normalize_uxo_count(uxo_count: float) -> float:
+    if uxo_count > 100:
         return 1.0
-    elif quantity > 50:
+    elif uxo_count > 50:
         return 0.7
-    elif quantity > 10:
+    elif uxo_count > 10:
         return 0.5
-    elif quantity >= 1:
+    elif uxo_count >= 1:
         return 0.2
     return 0.0
 
 
-def normalize_burial_depth(depth_cm: float) -> float:
+def normalize_burial_depth_cm(depth_cm: float) -> float:
     if depth_cm <= 10:
         return 1.0
     elif depth_cm <= 30:
@@ -79,17 +78,17 @@ def normalize_ordnance_condition(condition: str) -> float:
 
 def calculate_danger_score(
     munition_type: str,
-    quantity: int,
-    burial_depth: float,
+    burial_depth_cm: float,
     ordnance_age: float,
     population_estimate: int,
     environment: str,
     ordnance_condition: str,
+    uxo_count: float,
 ) -> float:
     weights = {
         "munition_type": 0.25,
-        "quantity": 0.20,
-        "burial_depth": 0.10,
+        "uxo_count": 0.20,
+        "burial_depth_cm": 0.10,
         "ordnance_age": 0.10,
         "population_estimate": 0.15,  # proxy for proximity
         "environment": 0.10,
@@ -98,8 +97,8 @@ def calculate_danger_score(
 
     score = (
         normalize_munition_type(munition_type) * weights["munition_type"]
-        + normalize_quantity(quantity) * weights["quantity"]
-        + normalize_burial_depth(burial_depth) * weights["burial_depth"]
+        + normalize_uxo_count(uxo_count) * weights["uxo_count"]
+        + normalize_burial_depth_cm(burial_depth_cm) * weights["burial_depth_cm"]
         + normalize_ordnance_age(ordnance_age) * weights["ordnance_age"]
         + normalize_population_estimate(population_estimate)
         * weights["population_estimate"]

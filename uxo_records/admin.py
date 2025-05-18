@@ -12,6 +12,7 @@ class UXORecordAdmin(admin.ModelAdmin):
         "ordnance_condition",
         "ordnance_age",
         "population_estimate",
+        "uxo_count",
         "danger_score",
     )
     list_filter = ("region", "ordnance_type", "ordnance_condition")

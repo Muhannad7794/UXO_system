@@ -3,6 +3,7 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from uxo_records.models import UXORecord
 from danger_score.calculators.danger_score_logic import calculate_danger_score
+from danger_score.utils.parsing import extract_numeric_start
 
 
 def parse_range_string(value):
@@ -21,20 +22,28 @@ def parse_range_string(value):
 
 
 @receiver(pre_save, sender=UXORecord)
-def compute_danger_score(sender, instance, **kwargs):
+def assign_danger_score(sender, instance, **kwargs):
     try:
-        burial_depth = parse_range_string(instance.burial_depth_cm)
-        ordnance_age = parse_range_string(instance.ordnance_age)
+        burial_depth = extract_numeric_start(instance.burial_depth_cm)
+        ordnance_age = extract_numeric_start(instance.ordnance_age)
+        uxo_count = extract_numeric_start(
+            instance.uxo_count,
+            fallback_map={
+                "High density cluster munition remnants": 100,
+                "Widespread landmine contamination": 80,
+                "UXO hotspot (quantity not stated)": 60,
+                "Estimated contamination (Baghouz-level)": 90,
+            },
+        )
 
         instance.danger_score = calculate_danger_score(
             munition_type=instance.ordnance_type,
-            quantity=1,  # default or placeholder if quantity isn't modeled
-            burial_depth=burial_depth or 0,
-            ordnance_age=ordnance_age or 0,
-            population_estimate=instance.population_estimate or 0,
+            uxo_count=uxo_count,
+            burial_depth_cm=burial_depth,
+            ordnance_age=ordnance_age,
+            population_estimate=instance.population_estimate,
             environment=instance.environmental_conditions,
             ordnance_condition=instance.ordnance_condition,
         )
     except Exception as e:
-        print(f"[Signal] Failed to compute danger_score: {e}")
-        instance.danger_score = None
+        print(f"Could not calculate danger score: {e}")

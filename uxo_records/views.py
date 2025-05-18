@@ -27,6 +27,7 @@ class UXORecordListCreateView(generics.ListCreateAPIView):
         "ordnance_age",
         "population_estimate",
         "danger_score",
+        "uxo_count",
     ]
 
 
