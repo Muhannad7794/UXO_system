@@ -41,6 +41,22 @@ UXO_system/
 │   ├── signals.py                  # Triggers danger score calculation upon adding new record(s)
 │   ├── urls.py
 │   └── tests.py
+reports/
+├── __init__.py
+├── admin.py
+├── apps.py
+├── models.py
+├── views.py
+├── urls.py
+├── tests.py
+├── migrations/
+├── templates/
+│   └── reports/
+├── static/
+│    └── reports/
+│       ├── css/
+│       └── js/
+│
 │
 ├── citizens_reports/               # Civilian-submitted UXO reports
 │   ├── __init__.py

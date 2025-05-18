@@ -35,9 +35,10 @@ INSTALLED_APPS = [
     "rest_framework",
     "drf_spectacular",
     # local apps
-    "citizens_reports",
     "uxo_records",
     "danger_score",
+    "citizens_reports",
+    "reports",
 ]
 
 MIDDLEWARE = [
