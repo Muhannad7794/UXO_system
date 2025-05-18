@@ -42,6 +42,11 @@ UXO_system/
 │   ├── urls.py
 │   └── tests.py
 reports/
+│   ├── views/
+│         ├── quantity_filters_views
+│         ├── search_sort_views
+│         ├── statistics_views
+│         ├── visualization_views
 ├── __init__.py
 ├── admin.py
 ├── apps.py
