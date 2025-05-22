@@ -99,14 +99,9 @@ class VerifyCitizenReportView(generics.CreateAPIView):
     )
     def post(self, request, *args, **kwargs):
         report = self.get_object()
-        data = request.data.copy()
-
-        # Pre-fill region from citizen report location
-        data["region"] = report.location
-
-        serializer = self.get_serializer(data=data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        serializer.save(region=report.location)
 
         report.status = "verified"
         report.save()

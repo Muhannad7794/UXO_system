@@ -12,7 +12,7 @@ class CitizenReportSerializer(serializers.ModelSerializer):
 
 
 class UXORecordFromReportSerializer(serializers.ModelSerializer):
-    region = serializers.CharField(required=False)
+    region = serializers.CharField(read_only=True)
 
     class Meta:
         model = UXORecord
