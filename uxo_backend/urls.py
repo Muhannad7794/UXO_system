@@ -8,8 +8,10 @@ from drf_spectacular.views import (
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    # local apps paths
     path("api/v1/", include("uxo_records.urls")),
     path("api/v1/", include("reports.urls")),
+    path("api/v1/", include("citizens_reports.urls")),
     # Schema & Docs
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema")),
