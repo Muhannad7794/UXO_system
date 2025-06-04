@@ -6,7 +6,13 @@ import sys
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
-load_dotenv()
+# When using docker-compose with an env_file, these variables are already
+# in the container's environment, so os.getenv() will pick them up.
+# load_dotenv() here would primarily be for local development outside Docker
+# or if you specifically point it to .env.gis.
+load_dotenv()  # This will load from a file named '.env' by default if it exists.
+# For the GIS setup, docker-compose's env_file directive handles .env.gis.
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -18,9 +24,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv("DJANGO_DEBUG")
+# Convert DEBUG to boolean, as os.getenv returns a string.
+DEBUG_STR = os.getenv("DJANGO_DEBUG", "False")  # Default to "False" if not set
+DEBUG = DEBUG_STR.lower() in ("true", "1", "t")
 
-ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "").split(",")
+
+ALLOWED_HOSTS_STR = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
+ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_STR.split(",") if host.strip()]
 
 
 # Application definition
@@ -32,7 +42,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.gis",  # ADDED: GeoDjango application
     "rest_framework",
+    "rest_framework_gis",  # ADDED: DRF GIS for GeoJSON support
+    "django_filters",  # ADDED: For filtering support in DRF
     "drf_spectacular",
     # local apps
     "uxo_records",
@@ -76,12 +89,14 @@ WSGI_APPLICATION = "uxo_backend.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.mysql",
-        "HOST": os.getenv("MYSQL_HOST"),
-        "USER": os.getenv("MYSQL_USER"),
-        "PASSWORD": os.getenv("MYSQL_PASSWORD"),
-        "PORT": os.getenv("MYSQL_PORT"),
-        "NAME": os.getenv("MYSQL_DATABASE"),
+        # UPDATED: Engine to use PostGIS
+        "ENGINE": "django.contrib.gis.db.backends.postgis",
+        # UPDATED: Environment variables to match your .env.gis for Azure
+        "HOST": os.getenv("DB_HOST"),
+        "USER": os.getenv("DB_USER"),
+        "PASSWORD": os.getenv("DB_PASSWORD"),
+        "PORT": os.getenv("DB_PORT"),
+        "NAME": os.getenv("DB_NAME"),
     }
 }
 
@@ -121,6 +136,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = "static/"
+# Optional: Define STATIC_ROOT for collectstatic if you haven't already
+# STATIC_ROOT = BASE_DIR / "staticfiles"
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -130,12 +148,17 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.SessionAuthentication",
-        "rest_framework.authentication.BasicAuthentication",
+        "rest_framework.authentication.BasicAuthentication",  # Consider TokenAuthentication for more robust API security
     ],
     "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.IsAuthenticated",
+        "rest_framework.permissions.IsAuthenticatedOrReadOnly",  # Changed for more flexibility
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    # Added default pagination for consistency
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 10,  # Default page size for pagination
+    # Default filters path
+    "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
 }
 
 SPECTACULAR_SETTINGS = {
@@ -144,23 +167,30 @@ SPECTACULAR_SETTINGS = {
         "API backend for the UXO Prioritization and Risk Assessment System.\n\n"
         "This API allows users to:\n"
         "- View UXO records across regions\n"
+        "- View regional GIS data with danger scores\n"  # Added this
         "- Filter/search by region, ordnance type, and condition\n"
         "- Create and manage UXO entries (authenticated users only)\n"
         "\nSecurity Note:\n"
         "Write operations (POST, PATCH, DELETE) require authentication."
     ),
     "VERSION": "1.0.0",
-    "SCHEMA_PATH_PREFIX": "/api/v1",
-    "SERVE_INCLUDE_SCHEMA": False,
+    "SCHEMA_PATH_PREFIX": "/api/v1",  # Ensure this matches your root API path
+    "SERVE_INCLUDE_SCHEMA": True,  # Typically True for development/docs
     "COMPONENT_SPLIT_REQUEST": True,
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
-    "PAGE_SIZE": 10,
+    # DEFAULT_PAGINATION_CLASS and PAGE_SIZE are now in REST_FRAMEWORK settings
     "SWAGGER_UI_SETTINGS": {
         "deepLinking": True,
         "defaultModelRendering": "example",
-        "defaultModelsExpandDepth": -1,
-        "docExpansion": "none",
+        "defaultModelsExpandDepth": -1,  # Changed from 1 to -1 to collapse models by default
+        "docExpansion": "none",  # list, full, or none
         "filter": True,
         "persistAuthorization": True,
     },
 }
+
+# GDAL and GEOS library paths (Usually not needed if system libraries are installed correctly and on PATH)
+# However, if Django has trouble finding them, you might need to specify them.
+# Check your Dockerfile ensures GDAL, GEOS, PROJ are installed.
+# Example (uncomment and adjust if necessary, but try without first):
+# GDAL_LIBRARY_PATH = '/usr/lib/libgdal.so' # Path might vary
+# GEOS_LIBRARY_PATH = '/usr/lib/libgeos_c.so' # Path might vary
