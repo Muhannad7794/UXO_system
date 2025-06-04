@@ -1,35 +1,10 @@
 # uxo_records/signals.py
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
-from .models import UXORecord  # UXORecord now has 'danger_score' and 'geometry'
+from .models import UXORecord
 from danger_score.calculators.danger_score_logic import calculate_danger_score
-from danger_score.utils.parsing import extract_numeric_start
-
-
-# This utility function was in your original signals.py.
-# If extract_numeric_start or calculate_danger_score handles range parsing,
-# this might be redundant or could be moved to a shared utils module.
-# For now, keeping it as per your provided structure.
-def parse_range_string(value):
-    """Convert a 'min-max' string to float average if applicable, else try float."""
-    if isinstance(value, str) and "-" in value:
-        try:
-            parts = value.split("-")
-            parts = [float(p.strip()) for p in parts]
-            if len(parts) > 0:
-                return sum(parts) / len(parts)
-            return None  # Or handle as error
-        except ValueError:  # Catch if parts are not convertible to float
-            return None
-        except Exception:  # Catch other potential errors
-            return None
-    try:
-        return float(value)
-    except (ValueError, TypeError):  # Catch if direct conversion to float fails
-        return None
-    except Exception:
-        return None
-
+# Use the (potentially renamed) improved parsing function
+from danger_score.utils.parsing import extract_numeric_value as parse_value_to_numerical
 
 @receiver(pre_save, sender=UXORecord)
 def assign_danger_score_to_uxo_record(sender, instance, **kwargs):
@@ -38,40 +13,41 @@ def assign_danger_score_to_uxo_record(sender, instance, **kwargs):
     before it is saved.
     """
     try:
-        # Ensure all necessary fields are present on the instance
-        # The extract_numeric_start function is expected to handle various string inputs
-        # and return a numeric type or None.
-        burial_depth = extract_numeric_start(instance.burial_depth_cm)
-        ordnance_age = extract_numeric_start(instance.ordnance_age)
-        uxo_count = extract_numeric_start(
+        # Use the improved parsing function
+        burial_depth = parse_value_to_numerical(instance.burial_depth_cm)
+        ordnance_age = parse_value_to_numerical(instance.ordnance_age)
+        uxo_count = parse_value_to_numerical(
             instance.uxo_count,
             fallback_map={
-                "High density cluster munition remnants": 100,
-                "Widespread landmine contamination": 80,
-                "UXO hotspot (quantity not stated)": 60,
-                "Estimated contamination (Baghouz-level)": 90,
-            },
+                "High density cluster munition remnants": 100.0, # Use floats for consistency
+                "Widespread landmine contamination": 80.0,
+                "UXO hotspot (quantity not stated)": 60.0,
+                "Estimated contamination (Baghouz-level)": 90.0,
+                # Add other text descriptions from your CSV if they map to uxo_count
+            }
         )
 
-        # Check if all required numeric inputs for calculation are valid
-        # calculate_danger_score should be robust enough to handle None for some inputs if designed so.
-        # If not, you might need more checks here.
+        # If any critical numeric input could not be parsed,
+        # it might be best to not calculate a score or ensure calculate_danger_score handles None.
+        # For now, we'll let calculate_danger_score handle None if it can,
+        # or it will raise an error which the except block will catch.
+        # A more robust approach might be:
+        # if burial_depth is None or ordnance_age is None or uxo_count is None:
+        #     instance.danger_score = None # Or a default "unable to calculate" score
+        #     print(f"Cannot calculate danger score for UXORecord {instance.id if instance.id else 'New'} due to unparseable inputs.")
+        #     return # Exit the signal handler
 
         calculated_score = calculate_danger_score(
             munition_type=instance.ordnance_type,
-            uxo_count=uxo_count,  # Should be numeric
-            burial_depth_cm=burial_depth,  # Should be numeric
-            ordnance_age=ordnance_age,  # Should be numeric
-            population_estimate=instance.population_estimate,  # Already PositiveIntegerField
+            uxo_count=uxo_count,
+            burial_depth_cm=burial_depth,
+            ordnance_age=ordnance_age,
+            population_estimate=instance.population_estimate, # This is already PositiveIntegerField
             environment=instance.environmental_conditions,
             ordnance_condition=instance.ordnance_condition,
         )
         instance.danger_score = calculated_score
 
     except Exception as e:
-        # Log the error and potentially set a default or null danger_score
-        print(
-            f"Error calculating danger score for UXORecord (ID: {instance.id if instance.id else 'New'}): {e}"
-        )
-        # Depending on requirements, you might want to set instance.danger_score to None or a default error value
-        instance.danger_score = None  # Example: set to None if calculation fails
+        print(f"Error in assign_danger_score_to_uxo_record (ID: {instance.id if instance.id else 'New'}): {e}")
+        instance.danger_score = None # Ensure score is None if any error occurs

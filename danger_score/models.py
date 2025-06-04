@@ -1,40 +1,17 @@
 # danger_score/models.py
-from django.db.models.signals import pre_save
-from django.dispatch import receiver
-from uxo_records.models import UXORecord
-from danger_score.calculators.danger_score_logic import calculate_danger_score
 
+# This file is for defining Django models specific to the 'danger_score' application.
+# If this app primarily provides calculation logic, utility functions, or management commands
+# and does not have its own database tables, this file can remain empty or
+# only contain imports if other parts of this app need them (though that's less common for models.py).
 
-@receiver(pre_save, sender=UXORecord)
-def assign_danger_score(sender, instance, **kwargs):
-    try:
-        # Handle ordnance_age
-        age_str = instance.ordnance_age
-        age = float(age_str.split("–")[0]) if "–" in age_str else float(age_str)
+# from django.db import models # Uncomment if you decide to add models to this app later
 
-        # Handle uxo_count
-        uxo_str = instance.uxo_count
-        try:
-            uxo_count = (
-                float(uxo_str.split("–")[0]) if "–" in uxo_str else float(uxo_str)
-            )
-        except ValueError:
-            # Fallback mapping for descriptive text
-            descriptive_map = {
-                "High density cluster munition remnants": 100,
-                "Medium density cluster munition remnants": 50,
-                "Low density cluster munition remnants": 10,
-            }
-            uxo_count = descriptive_map.get(uxo_str.strip(), 0)
+# The signal handler that was previously in this file for calculating UXORecord.danger_score
+# has been consolidated into 'uxo_records/signals.py'. This is to ensure that
+# signals related to a specific model (UXORecord) are managed within that model's app
+# and to avoid duplicate signal registrations.
 
-        instance.danger_score = calculate_danger_score(
-            munition_type=instance.ordnance_type,
-            uxo_count=uxo_count,
-            burial_depth_cm=instance.burial_depth_cm,
-            ordnance_age=age,
-            population_estimate=instance.population_estimate,
-            environment=instance.environmental_conditions,
-            ordnance_condition=instance.ordnance_condition,
-        )
-    except Exception as e:
-        print(f"Could not calculate danger score: {e}")
+# If the 'danger_score' app needs to define its own database models in the future,
+# they would be defined here. For now, based on its role as a logic provider,
+# it may not need any.

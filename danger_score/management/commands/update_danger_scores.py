@@ -1,82 +1,80 @@
 # danger_score/management/commands/update_danger_scores.py
-from danger_score.calculators.danger_score_logic import calculate_danger_score
-from django.db.models.signals import pre_save
-from django.dispatch import receiver
-from uxo_records.models import UXORecord
-from danger_score.utils.parsing import extract_numeric_start
+
 from django.core.management.base import BaseCommand
+from uxo_records.models import UXORecord
+from django.db import transaction
+
+# Removed imports for:
+# - calculate_danger_score (will be called by the signal)
+# - pre_save, receiver (signal is defined in uxo_records.signals)
+# - extract_numeric_start (parsing is handled by the signal)
 
 
 class Command(BaseCommand):
-    help = "Update danger_score field for all existing UXO records"
+    help = "Recalculate and update the danger_score field for all existing UXORecord objects by re-saving them, which triggers the pre_save signal."
 
-    def handle(self, *args, **kwargs):
-        updated = 0
-        skipped = 0
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--batch-size",
+            type=int,
+            default=1000,
+            help="Process records in batches of this size to manage memory.",
+        )
 
-        for record in UXORecord.objects.all():
-            try:
-                burial_depth = extract_numeric_start(record.burial_depth_cm)
-                ordnance_age = extract_numeric_start(record.ordnance_age)
-                uxo_count = extract_numeric_start(
-                    record.uxo_count,
-                    fallback_map={
-                        "High density cluster munition remnants": 100,
-                        "Widespread landmine contamination": 80,
-                        "UXO hotspot (quantity not stated)": 60,
-                        "Estimated contamination (Baghouz-level)": 90,
-                    },
-                )
+    @transaction.atomic
+    def handle(self, *args, **options):
+        batch_size = options["batch_size"]
+        updated_count = 0
+        skipped_count = 0
+        total_records = UXORecord.objects.count()
 
-                score = calculate_danger_score(
-                    munition_type=record.ordnance_type,
-                    uxo_count=uxo_count,
-                    burial_depth_cm=burial_depth,
-                    ordnance_age=ordnance_age,
-                    population_estimate=record.population_estimate,
-                    environment=record.environmental_conditions,
-                    ordnance_condition=record.ordnance_condition,
-                )
+        if total_records == 0:
+            self.stdout.write(self.style.NOTICE("No UXO records found to update."))
+            return
 
-                record.danger_score = score
-                record.save()
-                updated += 1
+        self.stdout.write(
+            f"Starting update of danger_score for {total_records} UXO records..."
+        )
 
-            except Exception as e:
-                skipped += 1
-                print(f"Skipped record {record.id} - {e}")
+        # Iterate over records in batches to manage memory for large datasets
+        queryset = UXORecord.objects.all()
+        for i in range(0, total_records, batch_size):
+            batch = queryset[i : i + batch_size]
+            for record in batch:
+                try:
+                    # Simply saving the record will trigger the pre_save signal
+                    # in uxo_records/signals.py, which contains the logic
+                    # to parse necessary fields and call calculate_danger_score.
+                    # The signal will then update instance.danger_score before actual save.
+                    record.save()  # This triggers the signal in uxo_records.signals
+                    updated_count += 1
+                    if updated_count % 100 == 0:  # Print progress every 100 records
+                        self.stdout.write(
+                            f"Processed {updated_count}/{total_records} records..."
+                        )
+                except Exception as e:
+                    skipped_count += 1
+                    self.stderr.write(
+                        self.style.ERROR(
+                            f"Error updating record {record.id}: {e}. Skipping."
+                        )
+                    )
+            self.stdout.write(f"Batch {i//batch_size + 1} processed.")
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"Successfully updated danger_score for {updated} records. Skipped: {skipped}"
+                f"\nSuccessfully triggered score update for {updated_count} records."
             )
         )
+        if skipped_count > 0:
+            self.stdout.write(
+                self.style.WARNING(
+                    f"Skipped {skipped_count} records due to errors during save."
+                )
+            )
 
 
-@receiver(pre_save, sender=UXORecord)
-def assign_danger_score(sender, instance, **kwargs):
-    try:
-        fallback_map = {
-            "High density cluster munition remnants": 100,
-            "Medium density cluster munition remnants": 50,
-            "Low density cluster munition remnants": 10,
-            "UXO hotspot (quantity not stated)": 50,
-            "Widespread landmine contamination": 75,
-            "Estimated contamination (Baghouz-level)": 90,
-        }
-
-        age = extract_numeric_start(instance.ordnance_age)
-        uxo_count = extract_numeric_start(instance.uxo_count, fallback_map)
-
-        instance.danger_score = calculate_danger_score(
-            munition_type=instance.ordnance_type,
-            uxo_count=uxo_count,
-            burial_depth_cm=extract_numeric_start(instance.burial_depth_cm),
-            ordnance_age=age,
-            population_estimate=instance.population_estimate,
-            environment=instance.environmental_conditions,
-            ordnance_condition=instance.ordnance_condition,
-        )
-
-    except Exception as e:
-        print(f"Could not calculate danger score: {e}")
+# The duplicate @receiver(pre_save, sender=UXORecord) signal handler
+# that was previously here has been REMOVED.
+# The authoritative signal for calculating UXORecord.danger_score
+# should be in uxo_records/signals.py.
