@@ -1,43 +1,33 @@
 # reports/urls.py
 
 from django.urls import path
-from reports.views.statistics_views import AggregationView, GroupedCountView
-from reports.views.quantity_filters_views import (
-    TopNRecordsView,
-    BottomNRecordsView,
-    FilterByThresholdView,
-)
-from reports.views.search_sort_views import (
-    CombinedSearchAndOrderingView,
-    FieldMatchFilterView,
-)
-from reports.views.visualization_views import (
-    HeatmapDataView,
-    HistogramDataView,
-    BarChartDataView,
-    PieChartDataView,
-)
+from .views import (
+    statistics_views,
+    geospatial_views,
+)  # Assuming views are in these files
 
+# We will create/update these views in the next steps
 urlpatterns = [
-    # Statistics & Aggregation
-    path("aggregate/", AggregationView.as_view(), name="aggregate-stats"),
-    path("grouped-count/", GroupedCountView.as_view(), name="grouped-count"),
-    # Quantity-based filters
-    path("top-n/", TopNRecordsView.as_view(), name="top-n"),
-    path("bottom-n/", BottomNRecordsView.as_view(), name="bottom-n"),
-    path("threshold-filter/", FilterByThresholdView.as_view(), name="threshold-filter"),
-    # Advanced search & sorting
+    # A single, powerful endpoint for all statistical queries.
+    # It will accept query parameters to define the analysis.
+    # e.g., /api/v1/reports/statistics/?group_by=ordnance_type&aggregate=danger_score__avg
     path(
-        "combined-search/",
-        CombinedSearchAndOrderingView.as_view(),
-        name="combined-search",
+        "statistics/",
+        statistics_views.StatisticsView.as_view(),
+        name="report-statistics",
     ),
-    path("field-match/", FieldMatchFilterView.as_view(), name="field-match"),
-    # Visualization endpoints
-    path("visualization/heatmap/", HeatmapDataView.as_view(), name="heatmap-data"),
+    # An endpoint to generate data suitable for a heatmap visualization.
+    # It will return a list of coordinates and their weights (e.g., danger_score).
     path(
-        "visualization/histogram/", HistogramDataView.as_view(), name="histogram-data"
+        "geospatial/heatmap/",
+        geospatial_views.HeatmapView.as_view(),
+        name="report-heatmap",
     ),
-    path("visualization/bar-chart/", BarChartDataView.as_view(), name="bar-chart-data"),
-    path("visualization/pie-chart/", PieChartDataView.as_view(), name="pie-chart-data"),
+    # An endpoint to find all UXO records within a specified rectangular area (bounding box).
+    # e.g., /api/v1/reports/geospatial/within-bbox/?bbox=35.0,33.0,37.0,34.0
+    path(
+        "geospatial/within-bbox/",
+        geospatial_views.RecordsWithinBboxView.as_view(),
+        name="report-records-within-bbox",
+    ),
 ]
