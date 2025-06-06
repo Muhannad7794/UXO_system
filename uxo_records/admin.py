@@ -1,38 +1,50 @@
 # uxo_records/admin.py
 
 from django.contrib import admin
-from django.contrib.gis.admin import GISModelAdmin  # Use GISModelAdmin
-from .models import UXORecord
+from leaflet.admin import LeafletGeoAdmin  # For displaying map widgets
+from .models import Region, UXORecord
+
+
+@admin.register(Region)
+class RegionAdmin(LeafletGeoAdmin):
+    """
+    Admin configuration for the Region model.
+    Displays a map for the region's geometry.
+    """
+
+    list_display = ("name",)
+    search_fields = ("name",)
 
 
 @admin.register(UXORecord)
-class UXORecordAdmin(GISModelAdmin):  # Inherit from GISModelAdmin
+class UXORecordAdmin(LeafletGeoAdmin):
     """
-    Admin interface for the UXORecord model.
-    Uses GISModelAdmin to display an interactive map for the geometry field.
+    Admin configuration for individual UXO Records.
+    Displays a map for the incident's point location.
     """
 
     list_display = (
         "id",
         "region",
         "ordnance_type",
-        "ordnance_condition",
-        "danger_score",  # danger_score is back on this model
-        "population_estimate",
-        "uxo_count",
-        # 'geometry' field is present, but displaying full WKT in list_display is often too verbose.
-        # The map widget will appear in the detail/edit form for this record.
-        # You could add a method to the model to show if geometry exists, e.g., has_geometry.
+        "danger_score",
+        "is_loaded",
+        "burial_status",
+        "date_reported",
     )
-    list_filter = ("region", "ordnance_type", "ordnance_condition", "danger_score")
-    search_fields = ("region", "ordnance_type", "ordnance_condition")
-    ordering = ("-danger_score",)  # Order by danger_score by default in admin list
+    list_filter = (
+        "region",
+        "ordnance_type",
+        "ordnance_condition",
+        "is_loaded",
+        "burial_status",
+        "proximity_to_civilians",
+    )
+    search_fields = ("id", "region__name")
+    readonly_fields = ("danger_score", "date_reported")
 
-    # GISModelAdmin will use Leaflet by default for the 'geometry' field widget.
-    # You can customize map options if needed:
-    # default_lat = 35 # Approximate center for Syria
-    # default_lon = 38
-    # default_zoom = 5
-
-    # Fields to display in the form. If you want to control the order or which fields appear:
-    # fields = ('region', 'geometry', 'danger_score', 'environmental_conditions', ...)
+    # Settings for the Leaflet point map widget
+    settings_overrides = {
+        "DEFAULT_CENTER": (33.85, 35.86),  # Default center of the map (e.g., Lebanon)
+        "DEFAULT_ZOOM": 8,
+    }

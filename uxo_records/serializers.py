@@ -1,37 +1,45 @@
 # uxo_records/serializers.py
 
 from rest_framework import serializers
-from rest_framework_gis.serializers import (
-    GeoFeatureModelSerializer,
-)  # Import for GeoJSON
+from rest_framework_gis.serializers import GeoFeatureModelSerializer
 from .models import UXORecord
 
 
-class UXORecordSerializer(
-    GeoFeatureModelSerializer
-):  # Inherit from GeoFeatureModelSerializer
+class UXORecordSerializer(GeoFeatureModelSerializer):
     """
     A GeoJSON serializer for the UXORecord model.
-    This will output data in GeoJSON format, where the 'geometry' field
-    will be the GeoJSON geometry, and other fields will be in the 'properties'
-    of the GeoJSON feature.
+    This is the primary, functional serializer for the API.
+    """
+
+    # Explicitly define the 'id' field to ensure drf-spectacular compatibility.
+    id = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = UXORecord
+        geo_field = "location"  # The geometry field is now 'location'
+        id_field = "id"
+        fields = [
+            "id",
+            "region",
+            "ordnance_type",
+            "ordnance_condition",
+            "is_loaded",
+            "proximity_to_civilians",
+            "burial_status",
+            "date_reported",
+            "location",
+            "danger_score",
+        ]
+
+
+class UXORecordPropertiesSerializer(serializers.ModelSerializer):
+    """
+    A simple, non-GIS serializer for UXORecord.
+    Its only purpose is to be used by drf-spectacular to avoid a bug
+    when generating the schema for endpoints that return GeoJSON.
     """
 
     class Meta:
         model = UXORecord
-        geo_field = "geometry"  # Specifies which model field contains the geometry
-        fields = [
-            "id",
-            "region",  # This is the CharField from the model
-            "environmental_conditions",
-            "ordnance_type",
-            "burial_depth_cm",
-            "ordnance_condition",
-            "ordnance_age",
-            "population_estimate",
-            "uxo_count",
-            "danger_score",  # danger_score is back on this model
-            "geometry",  # Include the geometry field
-        ]
-        # If you want to make some fields read-only, you can add:
-        # read_only_fields = ('danger_score',) # Example: if danger_score is always set by signals
+        # Exclude the geometry field to keep it simple
+        exclude = ["location"]

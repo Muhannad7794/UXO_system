@@ -1,64 +1,108 @@
 # uxo_records/models.py
 
-from django.contrib.gis.db import models as gis_models  # Import GeoDjango models
 from django.db import models
+from django.contrib.gis.db import models as gis_models
 
-# The danger_score calculation will be handled by signals, similar to the original setup.
+
+class Region(models.Model):
+    """
+    Represents a single administrative region with its geographic boundary.
+    e.g., 'Aleppo Governorate' with its MultiPolygon.
+    """
+
+    name = models.CharField(
+        max_length=100, unique=True, help_text="Name of the administrative region"
+    )
+    geometry = gis_models.MultiPolygonField(
+        srid=4326, help_text="The geometric shape (polygon) of the region."
+    )
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name_plural = "Regions"
+        ordering = ["name"]
 
 
 class UXORecord(models.Model):
-    # Fields from the original model
-    region = models.CharField(
-        max_length=100, help_text="Name of the region for this record"
-    )
-    environmental_conditions = models.CharField(max_length=100)
-    ordnance_type = models.CharField(max_length=100)
-    burial_depth_cm = models.CharField(
-        max_length=20, help_text="e.g., '15' or '10-20'"
-    )  # Keep as CharField for now to match CSV
-    ordnance_condition = models.CharField(max_length=50)
-    ordnance_age = models.CharField(
-        max_length=20, help_text="e.g., '5' or '5-7'"
-    )  # Keep as CharField
-    population_estimate = models.PositiveIntegerField(
-        help_text="Population estimate relevant to this specific UXO context/area"
-    )
-    uxo_count = models.CharField(
-        max_length=50, help_text="e.g., '5' or '10-20' or 'High density...'"
-    )  # Keep as CharField
+    """
+    Represents a single, specific UXO incident or report.
+    Each record is located at a precise point and belongs to a Region.
+    """
 
-    # Danger score for this specific UXO record/instance
+    # --- ENUMERATIONS FOR DATA INTEGRITY ---
+    class OrdnanceType(models.TextChoices):
+        ARTILLERY = "ART", "Artillery Projectile"
+        MORTAR = "MOR", "Mortar Bomb"
+        ROCKET = "ROC", "Rocket"
+        AIRCRAFT_BOMB = "BOM", "Aircraft Bomb"
+        LANDMINE = "MIN", "Landmine"
+        SUBMUNITION = "SUB", "Submunition"
+        IED = "IED", "Improvised Explosive Device"
+        OTHER = "OTH", "Other"
+
+    class OrdnanceCondition(models.TextChoices):
+        INTACT = "INT", "Intact"
+        CORRODED = "COR", "Corroded"
+        DAMAGED = "DMG", "Damaged/Deformed"
+        LEAKING = "LEK", "Leaking/Exuding"
+
+    class ProximityStatus(models.TextChoices):
+        IMMEDIATE = "IMM", "Immediate (0-100m to civilians/infrastructure)"
+        NEAR = "NEA", "Near (101-500m)"
+        REMOTE = "REM", "Remote (>500m)"
+
+    class BurialStatus(models.TextChoices):
+        EXPOSED = "EXP", "Exposed"
+        PARTIAL = "PAR", "Partially Exposed"
+        CONCEALED = "CON", "Concealed (by vegetation/debris)"
+        BURIED = "BUR", "Buried"
+
+    # === CORE FIELDS ===
+    location = gis_models.PointField(
+        srid=4326, help_text="The precise GIS point location of the UXO incident."
+    )
+    region = models.ForeignKey(
+        Region,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="uxo_records",
+        help_text="The administrative region this UXO record belongs to.",
+    )
+    date_reported = models.DateTimeField(auto_now_add=True)
+
+    # === THREAT PARAMETERS ===
+    ordnance_type = models.CharField(max_length=3, choices=OrdnanceType.choices)
+    ordnance_condition = models.CharField(
+        max_length=3, choices=OrdnanceCondition.choices
+    )
+    is_loaded = models.BooleanField(
+        default=True, help_text="Is the ordnance considered to be loaded and fuzed?"
+    )
+
+    # === VULNERABILITY & EXPOSURE PARAMETERS ===
+    proximity_to_civilians = models.CharField(
+        max_length=3,
+        choices=ProximityStatus.choices,
+        help_text="General proximity to civilians or critical infrastructure.",
+    )
+    burial_status = models.CharField(
+        max_length=3,
+        choices=BurialStatus.choices,
+        help_text="How exposed or buried is the ordnance?",
+    )
+
+    # --- The Danger Score is now the last field as requested ---
     danger_score = models.FloatField(
         null=True,
         blank=True,
-        help_text="Calculated danger score for this specific UXO record",
+        help_text="Calculated danger score for this specific UXO incident.",
     )
-
-    # GIS field to store the geometry associated with this record's region
-    # This will store the polygon from the CSV data.
-    # Making it nullable and blankable for flexibility, though your CSV provides it.
-    geometry = gis_models.MultiPolygonField(
-        srid=4326,
-        null=True,
-        blank=True,
-        help_text="The geometric shape (polygon) of the region associated with this record.",
-    )
-
-    class Meta:
-        verbose_name = "UXO Record"
-        verbose_name_plural = "UXO Records"
-        indexes = [
-            models.Index(fields=["region"]),  # Index on the CharField region name
-            models.Index(fields=["ordnance_type"]),
-            models.Index(
-                fields=["danger_score"]
-            ),  # Index on danger_score for querying/sorting
-            # A spatial index will be automatically created for the 'geometry' field by PostGIS
-        ]
-        ordering = ["-danger_score", "-id"]  # Example: order by danger score primarily
 
     def __str__(self):
-        return f"{self.ordnance_type} ({self.ordnance_condition}) in {self.region} - Score: {self.danger_score:.2f}"
+        return f"UXO Record #{self.id} in {self.region.name if self.region else 'N/A'}"
 
-    # The logic to calculate danger_score will be in signals.py,
-    # triggered on pre_save, similar to your original setup.
+    class Meta:
+        ordering = ["-danger_score"]

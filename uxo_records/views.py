@@ -5,10 +5,8 @@ from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
 
 from .models import UXORecord
-
-# --- FIX: Use the correct serializer name from your serializers.py file ---
-from .serializers import UXORecordSerializer
-from .filters import UXORecordFilter  # Import our new filter class
+from .serializers import UXORecordSerializer  # Using the new serializer
+from .filters import UXORecordFilter  # Using the new filter class
 
 
 class UXORecordPagination(PageNumberPagination):
@@ -17,47 +15,40 @@ class UXORecordPagination(PageNumberPagination):
     max_page_size = 100
 
 
-class UXORecordViewSet(viewsets.ModelViewSet):
+class UXORecordViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    API endpoint for viewing and editing UXO records.
+    API endpoint for viewing UXO records based on the new data model.
     Supports advanced filtering, searching, and ordering.
     """
 
+    # Use the new UXORecord model as the source of data
     queryset = UXORecord.objects.all().order_by("-danger_score", "-id")
-    # --- FIX: Use the correct serializer class that we imported ---
     serializer_class = UXORecordSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     pagination_class = UXORecordPagination
 
-    # Define the filter backends to be used
+    # Define the filter backends
     filter_backends = [
         DjangoFilterBackend,
         filters.SearchFilter,
         filters.OrderingFilter,
     ]
 
-    # Point to our custom FilterSet class in filters.py
+    # Point to our custom FilterSet class
     filterset_class = UXORecordFilter
 
     # Define fields for the general-purpose SearchFilter
-    # e.g., /api/v1/records/?search=Cluster
     search_fields = [
-        "region",
+        "region__name",  # Allow searching by the name of the related region
         "ordnance_type",
         "ordnance_condition",
-        "environmental_conditions",
+        "burial_status",
     ]
 
     # Define fields that can be used for sorting
-    # e.g., /api/v1/records/?ordering=danger_score
     ordering_fields = [
         "id",
-        "region",
-        "population_estimate",
+        "region__name",
         "danger_score",
-        # Note: Sorting on the original text fields for age/depth/count
-        # might produce alphabetical, not numerical, order.
-        "ordnance_age",
-        "burial_depth_cm",
-        "uxo_count",
+        "date_reported",
     ]

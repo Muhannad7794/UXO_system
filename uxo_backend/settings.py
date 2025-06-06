@@ -50,10 +50,10 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "leaflet",
     # local apps
-    "uxo_records",
-    "danger_score",
-    "citizens_reports",
-    "reports",
+    "uxo_records.apps.UxoRecordsConfig",
+    "danger_score.apps.DangerScoreConfig",
+    "citizens_reports.apps.CitizensReportsConfig",
+    "reports.apps.ReportsConfig",
 ]
 
 MIDDLEWARE = [

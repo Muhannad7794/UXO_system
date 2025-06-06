@@ -20,6 +20,7 @@ RUN apt-get update && \
     binutils \
     libproj-dev \
     gdal-bin \
+    postgresql-client \
     libgdal-dev \
     build-essential && \
     # Now, install Python packages
