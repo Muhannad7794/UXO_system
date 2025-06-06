@@ -43,10 +43,12 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.gis",  # ADDED: GeoDjango application
+    # 3rd Party Apps
     "rest_framework",
     "rest_framework_gis",  # ADDED: DRF GIS for GeoJSON support
     "django_filters",  # ADDED: For filtering support in DRF
     "drf_spectacular",
+    "leaflet",
     # local apps
     "uxo_records",
     "danger_score",
@@ -175,8 +177,11 @@ SPECTACULAR_SETTINGS = {
     ),
     "VERSION": "1.0.0",
     "SCHEMA_PATH_PREFIX": "/api/v1",  # Ensure this matches your root API path
-    "SERVE_INCLUDE_SCHEMA": True,  # Typically True for development/docs
+    "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
+    "SERIALIZER_EXTENSIONS": {
+        "rest_framework_gis.fields.GeometryField": "drf_spectacular.extensions.OpenApiSerializerFieldExtension",
+    },
     # DEFAULT_PAGINATION_CLASS and PAGE_SIZE are now in REST_FRAMEWORK settings
     "SWAGGER_UI_SETTINGS": {
         "deepLinking": True,

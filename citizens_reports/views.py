@@ -1,109 +1,111 @@
+# citizens_reports/views.py
+
 from rest_framework import generics, permissions, status
-from .models import CitizenReport
-from .serializers import CitizenReportSerializer, UXORecordFromReportSerializer
-from drf_spectacular.utils import extend_schema, OpenApiParameter, extend_schema_view
-from rest_framework.generics import DestroyAPIView
 from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.views import APIView
-from rest_framework.permissions import IsAdminUser
+from drf_spectacular.utils import extend_schema
+
+from .models import CitizenReport
 from uxo_records.models import UXORecord
-from uxo_records.serializers import UXORecordSerializer
+from .serializers import (
+    CitizenReportSerializer,
+    AdminCitizenReportSerializer,
+    ReportVerificationSerializer,
+)
 
 
 class SubmitCitizenReportView(generics.CreateAPIView):
+    """
+    Public view for citizens to submit a new report.
+    Handles POST requests to /api/v1/citizen-reports/submit/
+    """
+
     queryset = CitizenReport.objects.all()
     serializer_class = CitizenReportSerializer
     permission_classes = [permissions.AllowAny]
 
-    @extend_schema(
-        summary="Submit a new UXO report (citizen)",
-        description="Allows a citizen to submit a UXO report including image and location.\n"
-        "Status is automatically set to 'pending'.",
-    )
-    def post(self, request, *args, **kwargs):
-        return super().post(request, *args, **kwargs)
+
+class ListCitizenReportsView(generics.ListAPIView):
+    """
+    Admin-only view to list all citizen reports for review.
+    Handles GET requests to /api/v1/citizen-reports/review/
+    """
+
+    queryset = CitizenReport.objects.all().order_by("status", "-date_reported")
+    serializer_class = AdminCitizenReportSerializer
+    permission_classes = [permissions.IsAdminUser]
 
 
-class ListAllCitizenReportsView(generics.ListAPIView):
+class RetrieveDeleteCitizenReportView(generics.RetrieveDestroyAPIView):
+    """
+    Admin-only view to retrieve the details of a single report, or to delete it.
+    - GET: Shows the full report details.
+    - DELETE: Deletes the report if it is deemed invalid.
+    The DRF Browsable API will show a "DELETE" button on this view's page.
+    """
+
     queryset = CitizenReport.objects.all()
-    serializer_class = CitizenReportSerializer
+    serializer_class = AdminCitizenReportSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+
+class VerifyCitizenReportView(generics.GenericAPIView):
+    """
+    Admin-only view to verify a report.
+    - GET: The DRF browsable API will render a form with all fields from ReportVerificationSerializer.
+    - POST: The admin submits the form to create a new UXORecord.
+    """
+
+    queryset = CitizenReport.objects.all()
+    serializer_class = ReportVerificationSerializer
     permission_classes = [permissions.IsAdminUser]
 
     @extend_schema(
-        summary="List all citizen reports (admin only)",
-        description="Returns a list of all citizen-submitted reports for review.\n"
-        "Only accessible to admin users.",
-    )
-    def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
-
-
-class RetrieveCitizenReportByIdView(generics.RetrieveAPIView):
-    queryset = CitizenReport.objects.all()
-    serializer_class = CitizenReportSerializer
-    permission_classes = [permissions.IsAdminUser]
-
-    @extend_schema(
-        summary="Retrieve specific citizen report (admin only)",
-        description="Returns full details of a specific citizen-submitted report by ID.\n"
-        "Only accessible to admin users.",
-        parameters=[
-            OpenApiParameter(
-                name="id",
-                description="ID of the citizen report",
-                required=True,
-                type=int,
-            ),
-        ],
-    )
-    def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
-
-
-class DeleteCitizenReportView(DestroyAPIView):
-    queryset = CitizenReport.objects.all()
-    serializer_class = CitizenReportSerializer
-    permission_classes = [permissions.IsAdminUser]
-
-    @extend_schema(
-        summary="Delete a citizen report (admin only)",
-        description=(
-            "Allows an admin to delete a citizen-submitted report from the system. "
-            "Use this if the report was reviewed and determined not to be a valid UXO finding."
-        ),
-        parameters=[
-            OpenApiParameter(
-                name="id",
-                description="ID of the citizen report to delete",
-                required=True,
-                type=int,
-            ),
-        ],
-        responses={204: None},
-    )
-    def delete(self, request, *args, **kwargs):
-        return super().delete(request, *args, **kwargs)
-
-
-class VerifyCitizenReportView(generics.CreateAPIView):
-    queryset = CitizenReport.objects.all()
-    serializer_class = UXORecordFromReportSerializer
-    permission_classes = [permissions.IsAdminUser]
-    lookup_url_kwarg = "pk"
-
-    @extend_schema(
-        summary="Verify a citizen report",
-        description="Admin fills UXO fields. Region is pre-filled from citizen report. Creates UXO record, triggers danger score, and sets report as verified.",
-        responses={201: UXORecordFromReportSerializer},
+        summary="Verify Citizen Report & Create UXO Record",
+        description="Fill out the form to provide the necessary details. Submitting will create a new, official UXORecord and mark this report as 'verified'.",
     )
     def post(self, request, *args, **kwargs):
         report = self.get_object()
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save(region=report.location)
 
-        report.status = "verified"
-        report.save()
+        if report.status != "pending":
+            return Response(
+                {"error": "This report has already been processed."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        verification_serializer = self.get_serializer(data=request.data)
+        verification_serializer.is_valid(raise_exception=True)
+        admin_data = verification_serializer.validated_data
+
+        try:
+            # Create a new UXORecord using all the data from the admin's form
+            new_uxo_record = UXORecord.objects.create(
+                region=admin_data["region"],
+                environmental_conditions=admin_data["environmental_conditions"],
+                ordnance_type=admin_data["ordnance_type"],
+                burial_depth_cm=admin_data["burial_depth_cm"],
+                ordnance_condition=admin_data["ordnance_condition"],
+                ordnance_age=admin_data["ordnance_age"],
+                population_estimate=admin_data["population_estimate"],
+                uxo_count=admin_data["uxo_count"],
+                # NOTE: The UXORecord 'geometry' (MultiPolygon of the region) is left null.
+                # It is not the same as the CitizenReport 'location' (Point of the sighting).
+                # The danger_score will be calculated automatically by the model's signal.
+            )
+
+            # Update the report's status and link it to the new record
+            report.status = "verified"
+            report.verified_record = new_uxo_record
+            report.save()
+
+            return Response(
+                {
+                    "status": "Report verified successfully.",
+                    "uxo_record_id": new_uxo_record.id,
+                },
+                status=status.HTTP_201_CREATED,
+            )
+        except Exception as e:
+            return Response(
+                {"error": f"Failed to create UXO record: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )

@@ -5,6 +5,7 @@ Django==5.2.1
 djangorestframework==3.16.0
 djangorestframework-gis==1.0.0 # ADDED for GeoJSON support
 django-filter==24.2
+django-leaflet==0.28.0
 drf-spectacular==0.28.0
 et_xmlfile==2.0.0
 inflection==0.5.1
