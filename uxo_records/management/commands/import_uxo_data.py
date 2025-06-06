@@ -1,17 +1,52 @@
+# uxo_records/management/commands/import_uxo_data.py
 import pandas as pd
 from django.core.management.base import BaseCommand, CommandError
-from django.contrib.gis.geos import (
-    GEOSGeometry,
-    Polygon,
-    MultiPolygon,
-)  # Import Polygon, MultiPolygon
-from django.contrib.gis.geos.error import GEOSException
-from uxo_records.models import UXORecord
+from django.contrib.gis.geos import Point
 from django.db import transaction
+from uxo_records.models import Region, UXORecord
+
+# --- DATA MAPPING DICTIONARIES ---
+# These maps translate human-readable strings from the CSV into the
+# internal database representations used by the UXORecord model's `choices`.
+
+ORDNANCE_TYPE_MAP = {
+    "Artillery Projectile": UXORecord.OrdnanceType.ARTILLERY,
+    "Mortar Bomb": UXORecord.OrdnanceType.MORTAR,
+    "Rocket": UXORecord.OrdnanceType.ROCKET,
+    "Aircraft Bomb": UXORecord.OrdnanceType.AIRCRAFT_BOMB,
+    "Landmine": UXORecord.OrdnanceType.LANDMINE,
+    "Submunition": UXORecord.OrdnanceType.SUBMUNITION,
+    "Improvised Explosive Device": UXORecord.OrdnanceType.IED,
+    "Other": UXORecord.OrdnanceType.OTHER,
+}
+
+ORDNANCE_CONDITION_MAP = {
+    "Intact": UXORecord.OrdnanceCondition.INTACT,
+    "Corroded": UXORecord.OrdnanceCondition.CORRODED,
+    "Damaged/Deformed": UXORecord.OrdnanceCondition.DAMAGED,
+    "Leaking/Exuding": UXORecord.OrdnanceCondition.LEAKING,
+}
+
+PROXIMITY_STATUS_MAP = {
+    "Immediate (0-100m to civilians/infrastructure)": UXORecord.ProximityStatus.IMMEDIATE,
+    "Near (101-500m)": UXORecord.ProximityStatus.NEAR,
+    "Remote (>500m)": UXORecord.ProximityStatus.REMOTE,
+}
+
+BURIAL_STATUS_MAP = {
+    "Exposed": UXORecord.BurialStatus.EXPOSED,
+    "Partially Exposed": UXORecord.BurialStatus.PARTIAL,
+    "Concealed (by vegetation/debris)": UXORecord.BurialStatus.CONCEALED,
+    "Buried": UXORecord.BurialStatus.BURIED,
+}
 
 
 class Command(BaseCommand):
-    help = "Imports UXO data from a CSV file into the database. Each row becomes a UXORecord with its own geometry."
+    help = (
+        "Imports UXO incident data from a CSV file. Each row should represent a single "
+        "UXO record with latitude and longitude. This command performs a spatial join "
+        "to link each record to its administrative Region."
+    )
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -20,40 +55,47 @@ class Command(BaseCommand):
         parser.add_argument(
             "--clear",
             action="store_true",
-            help="Clear existing UXORecord data before importing.",
+            help="Clear existing UXORecord data before importing. Does not affect Region data.",
+        )
+        parser.add_argument(
+            "--batch-size",
+            type=int,
+            default=1000,
+            help="Process and insert records in batches of this size.",
         )
 
     @transaction.atomic
     def handle(self, *args, **options):
         csv_file_path = options["csv_file_path"]
         clear_data = options["clear"]
+        batch_size = options["batch_size"]
 
         if clear_data:
             self.stdout.write(self.style.WARNING("Clearing existing UXORecord data..."))
             UXORecord.objects.all().delete()
             self.stdout.write(self.style.SUCCESS("Existing UXORecord data cleared."))
 
+        if not Region.objects.exists():
+            raise CommandError(
+                "No Region data found. Please import region boundaries before importing UXO records."
+            )
+
         try:
-            df = pd.read_csv(csv_file_path)
+            df = pd.read_csv(csv_file_path).fillna("")
         except FileNotFoundError:
             raise CommandError(f'Error: CSV file not found at "{csv_file_path}"')
         except Exception as e:
             raise CommandError(f"Error reading CSV file: {e}")
 
-        self.stdout.write(f"Starting import of UXO records from {csv_file_path}...")
-        records_created_count = 0
-        records_failed_count = 0  # To count records that couldn't be created
-
+        self.stdout.write(f"Validating columns in {csv_file_path}...")
         expected_columns = [
-            "region",
-            "geometry",
-            "environmental_conditions",
+            "latitude",
+            "longitude",
             "ordnance_type",
-            "burial_depth_cm",
             "ordnance_condition",
-            "ordnance_age",
-            "population_estimate",
-            "uxo_count",
+            "is_loaded",
+            "proximity_to_civilians",
+            "burial_status",
         ]
         for col in expected_columns:
             if col not in df.columns:
@@ -61,134 +103,101 @@ class Command(BaseCommand):
                     f"Error: Missing expected column '{col}' in CSV file."
                 )
 
+        self.stdout.write("Starting import of UXO records...")
+        records_to_create = []
+        failed_rows = []
+
         for index, row in df.iterrows():
             try:
-                region_name_csv = str(row["region"]) if pd.notna(row["region"]) else ""
-                wkt_geometry_csv = (
-                    str(row["geometry"]) if pd.notna(row["geometry"]) else None
-                )
+                # 1. Create GIS Point Location
+                lat = float(row["latitude"])
+                lon = float(row["longitude"])
+                location_point = Point(lon, lat, srid=4326)
 
-                geometry_obj_for_model = None  # Initialize
-
-                if wkt_geometry_csv:
-                    try:
-                        # Ensure wkt_geometry_csv is a string before parsing
-                        if not isinstance(wkt_geometry_csv, str):
-                            self.stderr.write(
-                                self.style.WARNING(
-                                    f"Geometry for region '{region_name_csv}' at CSV row {index+2} is not a string: '{wkt_geometry_csv}'. Record will be created without geometry."
-                                )
-                            )
-                        else:
-                            parsed_geometry = GEOSGeometry(wkt_geometry_csv, srid=4326)
-
-                            # CRUCIAL FIX: Wrap Polygon in MultiPolygon if needed
-                            if isinstance(parsed_geometry, Polygon):
-                                geometry_obj_for_model = MultiPolygon(
-                                    parsed_geometry, srid=4326
-                                )
-                            elif isinstance(parsed_geometry, MultiPolygon):
-                                geometry_obj_for_model = parsed_geometry
-                            else:
-                                # Handle cases where geometry is valid WKT but not Polygon or MultiPolygon (e.g. Point, LineString)
-                                self.stderr.write(
-                                    self.style.WARNING(
-                                        f"Parsed geometry for region '{region_name_csv}' at CSV row {index+2} is a {type(parsed_geometry)}, not Polygon or MultiPolygon. Record will be created without geometry."
-                                    )
-                                )
-                                # geometry_obj_for_model remains None
-
-                    except GEOSException as e:
-                        self.stderr.write(
-                            self.style.ERROR(
-                                f"GEOS Error parsing WKT geometry for record in region '{region_name_csv}' at CSV row {index+2}: {e}. WKT: '{str(wkt_geometry_csv)[:100]}...' Record will be created without geometry."
-                            )
-                        )
-                    except (
-                        ValueError,
-                        TypeError,
-                    ) as e:  # Catch errors if WKT is fundamentally malformed
-                        self.stderr.write(
-                            self.style.ERROR(
-                                f"Invalid WKT string format for record in region '{region_name_csv}' at CSV row {index+2}: {e}. WKT: '{str(wkt_geometry_csv)[:100]}...' Record will be created without geometry."
-                            )
-                        )
-                    except (
-                        Exception
-                    ) as e:  # Catch any other unexpected errors during geometry parsing
-                        self.stderr.write(
-                            self.style.ERROR(
-                                f"Unexpected error creating geometry for record in region '{region_name_csv}' at CSV row {index+2}: {e}. WKT: '{str(wkt_geometry_csv)[:100]}...' Record will be created without geometry."
-                            )
-                        )
-                else:
-                    self.stderr.write(
-                        self.style.WARNING(
-                            f"Missing geometry for record in region '{region_name_csv}' at CSV row {index+2}. Record will be created without geometry."
-                        )
+                # 2. Perform Spatial Join to find the Region
+                region = Region.objects.filter(
+                    geometry__contains=location_point
+                ).first()
+                if not region:
+                    raise ValueError(
+                        "Could not find a corresponding Region for the given coordinates."
                     )
 
-                # Create the UXORecord object
-                # The danger_score will be calculated by the pre_save signal
-                UXORecord.objects.create(
-                    region=region_name_csv,
-                    geometry=geometry_obj_for_model,  # Assign the (potentially wrapped) GEOSGeometry object
-                    environmental_conditions=(
-                        str(row["environmental_conditions"])
-                        if pd.notna(row["environmental_conditions"])
-                        else ""
-                    ),
-                    ordnance_type=(
-                        str(row["ordnance_type"])
-                        if pd.notna(row["ordnance_type"])
-                        else ""
-                    ),
-                    burial_depth_cm=(
-                        str(row["burial_depth_cm"])
-                        if pd.notna(row["burial_depth_cm"])
-                        else ""
-                    ),
-                    ordnance_condition=(
-                        str(row["ordnance_condition"])
-                        if pd.notna(row["ordnance_condition"])
-                        else ""
-                    ),
-                    ordnance_age=(
-                        str(row["ordnance_age"])
-                        if pd.notna(row["ordnance_age"])
-                        else ""
-                    ),
-                    population_estimate=(
-                        int(row["population_estimate"])
-                        if pd.notna(row["population_estimate"])
-                        else 0
-                    ),
-                    uxo_count=(
-                        str(row["uxo_count"]) if pd.notna(row["uxo_count"]) else ""
-                    ),
-                )
-                records_created_count += 1
+                # 3. Map CSV data to model choices
+                ordnance_type = ORDNANCE_TYPE_MAP[row["ordnance_type"]]
+                ordnance_condition = ORDNANCE_CONDITION_MAP[row["ordnance_condition"]]
+                proximity_to_civilians = PROXIMITY_STATUS_MAP[
+                    row["proximity_to_civilians"]
+                ]
+                burial_status = BURIAL_STATUS_MAP[row["burial_status"]]
+                is_loaded = str(row["is_loaded"]).strip().lower() in [
+                    "true",
+                    "1",
+                    "yes",
+                ]
 
-            except (
-                Exception
-            ) as e:  # Catch any error during the creation of a single UXORecord
-                records_failed_count += 1
-                self.stderr.write(
-                    self.style.ERROR(
-                        f"FATAL error processing CSV row {index+2} for region '{row.get('region', 'N/A')}': {e}. Skipping this record."
+                # 4. Append a new UXORecord object to the batch list
+                records_to_create.append(
+                    UXORecord(
+                        location=location_point,
+                        region=region,
+                        ordnance_type=ordnance_type,
+                        ordnance_condition=ordnance_condition,
+                        is_loaded=is_loaded,
+                        proximity_to_civilians=proximity_to_civilians,
+                        burial_status=burial_status,
                     )
                 )
 
-        self.stdout.write(self.style.SUCCESS(f"\nImport complete."))
-        self.stdout.write(f"UXO Records successfully created: {records_created_count}")
-        if records_failed_count > 0:
+                # 5. If batch is full, create the records
+                if len(records_to_create) == batch_size:
+                    UXORecord.objects.bulk_create(records_to_create)
+                    self.stdout.write(
+                        f"Imported batch of {len(records_to_create)} records."
+                    )
+                    records_to_create = []
+
+            except (ValueError, KeyError, TypeError) as e:
+                failed_rows.append((index + 2, str(e)))  # CSV row number and error
+            except Exception as e:
+                failed_rows.append((index + 2, f"An unexpected error occurred: {e}"))
+
+        # Create any remaining records in the last batch
+        if records_to_create:
+            UXORecord.objects.bulk_create(records_to_create)
             self.stdout.write(
-                self.style.ERROR(
-                    f"UXO Records failed to create due to errors: {records_failed_count}"
+                f"Imported final batch of {len(records_to_create)} records."
+            )
+
+        # --- FINAL REPORT ---
+        self.stdout.write(self.style.SUCCESS("\nImport process complete."))
+        total_created = (
+            UXORecord.objects.count()
+            if not clear_data
+            else df.shape[0] - len(failed_rows)
+        )
+        self.stdout.write(f"Total UXO Records in database: {UXORecord.objects.count()}")
+
+        if failed_rows:
+            self.stdout.write(
+                self.style.WARNING(
+                    f"\nSkipped {len(failed_rows)} records due to errors:"
                 )
             )
+            for row_num, error in failed_rows[
+                :10
+            ]:  # Print details for the first 10 failures
+                self.stderr.write(f"  - Row {row_num}: {error}")
+            if len(failed_rows) > 10:
+                self.stderr.write("  ...")
+
         self.stdout.write(
             self.style.NOTICE(
-                "Danger scores for records should have been calculated automatically by signals"
+                "\nIMPORTANT: Danger scores have NOT been calculated automatically."
+            )
+        )
+        self.stdout.write(
+            self.style.NOTICE(
+                "Run 'python manage.py update_danger_scores' to calculate scores for the imported records."
             )
         )
