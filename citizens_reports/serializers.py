@@ -3,11 +3,12 @@
 from rest_framework import serializers
 from rest_framework_gis.serializers import GeometryField
 from .models import CitizenReport
+from uxo_records.models import UXORecord  # Import UXORecord to access its choices
 
 
 class CitizenReportSerializer(serializers.ModelSerializer):
     """
-    Serializer for citizens submitting a new report.
+    Serializer for citizens submitting a new report. (No changes needed)
     """
 
     location = GeometryField()
@@ -37,7 +38,7 @@ class CitizenReportSerializer(serializers.ModelSerializer):
 
 class AdminCitizenReportSerializer(serializers.ModelSerializer):
     """
-    Serializer for admins reviewing citizen reports.
+    Serializer for admins reviewing citizen reports. (No changes needed)
     """
 
     location = GeometryField()
@@ -48,26 +49,29 @@ class AdminCitizenReportSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-# --- CORRECTED & EXPANDED SERIALIZER ---
+# --- REFACTORED VERIFICATION SERIALIZER ---
 class ReportVerificationSerializer(serializers.Serializer):
     """
-    Defines the data an admin must provide to turn a report into a full UXORecord.
-    This serializer's fields will be rendered as a form in the DRF GUI.
+    Defines the data an admin must provide to create a UXORecord from a report.
+    The fields now match the current UXORecord model and use ChoiceFields
+    to render as dropdowns in the DRF browsable API.
     """
 
-    # The list of fields now matches the UXORecord model
-    region = serializers.CharField(required=True)
-    environmental_conditions = serializers.CharField(required=True)
-    ordnance_type = serializers.CharField(required=True)
-    burial_depth_cm = serializers.CharField(
-        required=True, help_text="e.g., '15' or '10-20'"
+    # These fields correspond to the Threat and Vulnerability parameters
+    # required by the UXORecord model.
+    ordnance_type = serializers.ChoiceField(choices=UXORecord.OrdnanceType.choices)
+    ordnance_condition = serializers.ChoiceField(
+        choices=UXORecord.OrdnanceCondition.choices
     )
-    ordnance_condition = serializers.CharField(required=True)
-    ordnance_age = serializers.CharField(required=True, help_text="e.g., '5' or '5-7'")
-    population_estimate = serializers.IntegerField(required=True)
-    uxo_count = serializers.CharField(required=True, help_text="e.g., '5' or '10-20'")
+    is_loaded = serializers.BooleanField(
+        default=True, help_text="Is the ordnance considered to be loaded and fuzed?"
+    )
+    proximity_to_civilians = serializers.ChoiceField(
+        choices=UXORecord.ProximityStatus.choices
+    )
+    burial_status = serializers.ChoiceField(choices=UXORecord.BurialStatus.choices)
 
-    # These methods are required by DRF's base Serializer class but we don't need them.
+    # These methods are required by DRF's base Serializer class but we don't need custom logic.
     def update(self, instance, validated_data):
         pass
 

@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema
 
 from .models import CitizenReport
-from uxo_records.models import UXORecord
+from uxo_records.models import UXORecord, Region  # Import Region for the spatial join
 from .serializers import (
     CitizenReportSerializer,
     AdminCitizenReportSerializer,
@@ -15,8 +15,7 @@ from .serializers import (
 
 class SubmitCitizenReportView(generics.CreateAPIView):
     """
-    Public view for citizens to submit a new report.
-    Handles POST requests to /api/v1/citizen-reports/submit/
+    Public view for citizens to submit a new report. (No changes needed)
     """
 
     queryset = CitizenReport.objects.all()
@@ -26,8 +25,7 @@ class SubmitCitizenReportView(generics.CreateAPIView):
 
 class ListCitizenReportsView(generics.ListAPIView):
     """
-    Admin-only view to list all citizen reports for review.
-    Handles GET requests to /api/v1/citizen-reports/review/
+    Admin-only view to list all citizen reports for review. (No changes needed)
     """
 
     queryset = CitizenReport.objects.all().order_by("status", "-date_reported")
@@ -37,10 +35,7 @@ class ListCitizenReportsView(generics.ListAPIView):
 
 class RetrieveDeleteCitizenReportView(generics.RetrieveDestroyAPIView):
     """
-    Admin-only view to retrieve the details of a single report, or to delete it.
-    - GET: Shows the full report details.
-    - DELETE: Deletes the report if it is deemed invalid.
-    The DRF Browsable API will show a "DELETE" button on this view's page.
+    Admin-only view to retrieve or delete a single report. (No changes needed)
     """
 
     queryset = CitizenReport.objects.all()
@@ -48,15 +43,16 @@ class RetrieveDeleteCitizenReportView(generics.RetrieveDestroyAPIView):
     permission_classes = [permissions.IsAdminUser]
 
 
+# --- REFACTORED VERIFICATION VIEW ---
 class VerifyCitizenReportView(generics.GenericAPIView):
     """
     Admin-only view to verify a report.
-    - GET: The DRF browsable API will render a form with all fields from ReportVerificationSerializer.
-    - POST: The admin submits the form to create a new UXORecord.
+    - GET: Renders a form with fields from the new ReportVerificationSerializer.
+    - POST: Creates a new UXORecord using the report's location and the admin's data.
     """
 
     queryset = CitizenReport.objects.all()
-    serializer_class = ReportVerificationSerializer
+    serializer_class = ReportVerificationSerializer  # Use the new serializer
     permission_classes = [permissions.IsAdminUser]
 
     @extend_schema(
@@ -76,20 +72,31 @@ class VerifyCitizenReportView(generics.GenericAPIView):
         verification_serializer.is_valid(raise_exception=True)
         admin_data = verification_serializer.validated_data
 
+        # The report's location is the single source of truth for the incident's position.
+        location_point = report.location
+
         try:
-            # Create a new UXORecord using all the data from the admin's form
+            # Spatially determine the region this point belongs to.
+            containing_region = Region.objects.filter(
+                geometry__contains=location_point
+            ).first()
+            if not containing_region:
+                return Response(
+                    {
+                        "error": f"The location provided ({location_point.wkt}) does not fall within any known Region."
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Create a new UXORecord using the report's location and the admin's form data.
             new_uxo_record = UXORecord.objects.create(
-                region=admin_data["region"],
-                environmental_conditions=admin_data["environmental_conditions"],
+                location=location_point,
+                region=containing_region,
                 ordnance_type=admin_data["ordnance_type"],
-                burial_depth_cm=admin_data["burial_depth_cm"],
                 ordnance_condition=admin_data["ordnance_condition"],
-                ordnance_age=admin_data["ordnance_age"],
-                population_estimate=admin_data["population_estimate"],
-                uxo_count=admin_data["uxo_count"],
-                # NOTE: The UXORecord 'geometry' (MultiPolygon of the region) is left null.
-                # It is not the same as the CitizenReport 'location' (Point of the sighting).
-                # The danger_score will be calculated automatically by the model's signal.
+                is_loaded=admin_data["is_loaded"],
+                proximity_to_civilians=admin_data["proximity_to_civilians"],
+                burial_status=admin_data["burial_status"],
             )
 
             # Update the report's status and link it to the new record
