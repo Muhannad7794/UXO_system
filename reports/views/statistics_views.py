@@ -4,11 +4,10 @@ from django.db.models import Avg, Count, Max, Min, Sum
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
-from uxo_records.models import UXORecord
+from uxo_records.models import UXORecord, Region  # Import Region as well
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
 
 # A dictionary to map string parameters to Django's aggregation functions
-# This is safer than using getattr() and prevents arbitrary function calls.
 AGGREGATION_MAP = {
     "avg": Avg,
     "max": Max,
@@ -17,43 +16,47 @@ AGGREGATION_MAP = {
     "count": Count,
 }
 
-# Define which fields are safe and valid for certain operations
+# --- UPDATED WHITELISTS FOR THE NEW DATA MODEL ---
+
+# Define which fields are valid for grouping.
+# Using 'region__name' allows grouping by the name of the region, which is more useful.
 VALID_GROUPING_FIELDS = [
-    "region",
+    "region__name",
     "ordnance_type",
     "ordnance_condition",
-    "environmental_conditions",
+    "is_loaded",
+    "proximity_to_civilians",
+    "burial_status",
 ]
+
+# Define which fields are valid for numeric aggregation.
+# In our new model, 'danger_score' is the only relevant numeric field.
 VALID_NUMERIC_FIELDS = [
     "danger_score",
-    "population_estimate",
-    "burial_depth_cm_val",  # Assuming you add this numeric field in the future
-    "ordnance_age_val",  # Assuming you add this numeric field in the future
-    "uxo_count_val",  # Assuming you add this numeric field in the future
 ]
 
 
 @extend_schema(
     summary="Generate UXO Statistics",
     description="""
-A flexible endpoint to generate various statistics about UXO records.
+A flexible endpoint to generate various statistics about UXO records based on the new data model.
 Supports two main analysis types: 'aggregate' and 'grouped'.
 
 **1. Aggregate Analysis (`analysis_type=aggregate`):**
 Performs a single aggregation over the entire dataset.
-- `numeric_field`: The field to aggregate (e.g., 'danger_score').
+- `numeric_field`: The field to aggregate (must be 'danger_score').
 - `operation`: The function to apply ('avg', 'max', 'min', 'sum', 'count').
 
 *Example: `/api/v1/reports/statistics/?analysis_type=aggregate&numeric_field=danger_score&operation=avg`*
 
 **2. Grouped Analysis (`analysis_type=grouped`):**
 Groups data by a category and performs an aggregation on each group.
-- `group_by`: The field to group results by (e.g., 'region', 'ordnance_type').
-- `aggregate_op` (optional): The function for aggregation ('avg', 'sum', 'max', 'min'). Defaults to 'count' if not provided.
-- `aggregate_field` (optional): The numeric field for aggregation. Required if `aggregate_op` is not 'count'.
+- `group_by`: The field to group results by (e.g., 'region__name', 'ordnance_type').
+- `aggregate_op` (optional): The function for aggregation ('avg', 'sum', 'max', 'min'). Defaults to 'count'.
+- `aggregate_field` (optional): The numeric field for aggregation (must be 'danger_score'). Required if `aggregate_op` is not 'count'.
 
 *Example 1 (Grouped Count): `/api/v1/reports/statistics/?analysis_type=grouped&group_by=ordnance_type`*
-*Example 2 (Grouped Average): `/api/v1/reports/statistics/?analysis_type=grouped&group_by=region&aggregate_op=avg&aggregate_field=danger_score`*
+*Example 2 (Grouped Average): `/api/v1/reports/statistics/?analysis_type=grouped&group_by=region__name&aggregate_op=avg&aggregate_field=danger_score`*
     """,
     parameters=[
         OpenApiParameter(
@@ -74,12 +77,12 @@ Groups data by a category and performs an aggregation on each group.
         ),
         OpenApiParameter(
             name="group_by",
-            description="Field to group by (for 'grouped' analysis).",
+            description=f"Field to group by (for 'grouped' analysis). Valid options: {', '.join(VALID_GROUPING_FIELDS)}",
             type=str,
         ),
         OpenApiParameter(
             name="numeric_field",
-            description="Field for calculation (for 'aggregate' analysis).",
+            description="Field for calculation (for 'aggregate' analysis). Valid options: 'danger_score'",
             type=str,
         ),
         OpenApiParameter(
@@ -89,7 +92,7 @@ Groups data by a category and performs an aggregation on each group.
         ),
         OpenApiParameter(
             name="aggregate_field",
-            description="Field for calculation within groups (for 'grouped' analysis).",
+            description="Field for calculation within groups (for 'grouped' analysis). Valid options: 'danger_score'",
             type=str,
         ),
         OpenApiParameter(
@@ -102,9 +105,7 @@ Groups data by a category and performs an aggregation on each group.
 )
 class StatisticsView(APIView):
     """
-    A consolidated view to handle various statistical aggregations.
-    This single view replaces the old AggregationView, GroupedCountView,
-    and all chart-specific views (Histogram, Bar, Pie).
+    A consolidated view to handle various statistical aggregations on the new data model.
     """
 
     permission_classes = [IsAuthenticatedOrReadOnly]
@@ -126,7 +127,7 @@ class StatisticsView(APIView):
 
     def perform_aggregate_analysis(self, request):
         """
-        Handles overall aggregation logic (formerly AggregationView).
+        Handles overall aggregation logic.
         """
         field = request.query_params.get("numeric_field")
         operation_str = request.query_params.get("operation")
@@ -141,7 +142,9 @@ class StatisticsView(APIView):
 
         if field not in VALID_NUMERIC_FIELDS:
             return Response(
-                {"error": f"Aggregation on field '{field}' is not supported."},
+                {
+                    "error": f"Aggregation on field '{field}' is not supported. Valid field is 'danger_score'."
+                },
                 status=400,
             )
 
@@ -151,8 +154,6 @@ class StatisticsView(APIView):
                 {"error": f"Unsupported operation: '{operation_str}'."}, status=400
             )
 
-        # The 'count' operation in Django's aggregate is special and doesn't need a distinct field.
-        # For other operations, we use the provided field.
         aggregation_arg = "id" if operation_str == "count" else field
         result = UXORecord.objects.aggregate(result=operation_func(aggregation_arg))
 
@@ -166,7 +167,7 @@ class StatisticsView(APIView):
 
     def perform_grouped_analysis(self, request):
         """
-        Handles grouped aggregation logic (formerly GroupedCountView, BarChartDataView, PieChartDataView, etc.).
+        Handles grouped aggregation logic.
         """
         group_by = request.query_params.get("group_by")
         aggregate_op_str = request.query_params.get(
@@ -184,7 +185,6 @@ class StatisticsView(APIView):
                 {"error": f"Grouping by '{group_by}' is not supported."}, status=400
             )
 
-        # If an aggregation operation other than 'count' is specified, a field must be provided
         if aggregate_op_str != "count" and not aggregate_field:
             return Response(
                 {
@@ -196,7 +196,7 @@ class StatisticsView(APIView):
         if aggregate_field and aggregate_field not in VALID_NUMERIC_FIELDS:
             return Response(
                 {
-                    "error": f"Aggregation on field '{aggregate_field}' is not supported."
+                    "error": f"Aggregation on field '{aggregate_field}' is not supported. Valid field is 'danger_score'."
                 },
                 status=400,
             )
@@ -207,17 +207,21 @@ class StatisticsView(APIView):
                 {"error": f"Unsupported operation: '{aggregate_op_str}'."}, status=400
             )
 
-        # Base queryset grouped by the specified field
         queryset = UXORecord.objects.values(group_by)
 
-        # Apply the correct annotation
         if aggregate_op_str == "count":
-            # This covers the functionality of GroupedCountView, HistogramDataView, and PieChartDataView
             annotation = queryset.annotate(result=Count("id")).order_by("-result")
         else:
-            # This covers the functionality of BarChartDataView
             annotation = queryset.annotate(result=op_func(aggregate_field)).order_by(
                 "-result"
+            )
+
+        # To improve readability of the output, we can rename the grouping key
+        # from e.g. 'region__name' to 'group' in the final list.
+        results_list = []
+        for item in annotation:
+            results_list.append(
+                {"group": item.pop(group_by), "value": item.pop("result")}
             )
 
         return Response(
@@ -228,6 +232,6 @@ class StatisticsView(APIView):
                     "aggregate_op": aggregate_op_str,
                     "aggregate_field": aggregate_field,
                 },
-                "results": list(annotation),
+                "results": results_list,
             }
         )

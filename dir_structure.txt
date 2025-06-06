@@ -43,10 +43,8 @@ UXO_system/
 │   └── tests.py
 reports/
 │   ├── views/
-│         ├── quantity_filters_views
-│         ├── search_sort_views
-│         ├── statistics_views
-│         ├── visualization_views
+│         ├── statistics_views.py
+│         ├── geospatial_views.py
 ├── __init__.py
 ├── admin.py
 ├── apps.py
