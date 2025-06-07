@@ -8,6 +8,7 @@ django-filter==24.2
 django-leaflet==0.28.0
 drf-spectacular==0.28.0
 et_xmlfile==2.0.0
+geopandas==0.14.3
 inflection==0.5.1
 iniconfig==2.1.0
 joblib==1.5.1
@@ -40,3 +41,7 @@ uritemplate==4.1.1
 matplotlib
 scikit-image
 seaborn
+requests
+fiona==1.9.6
+shapely==2.0.4
+pyproj==3.6.1
