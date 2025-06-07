@@ -38,10 +38,29 @@ class HeatmapView(APIView):
         return Response(heatmap_data)
 
 
+# --- DECORATOR ADDED TO FIX DOCUMENTATION ---
 @extend_schema(
     summary="Filter Records Within a Bounding Box",
-    description="...",
-    parameters=[...],
+    description="""
+Retrieves all UXO records whose location point is within a given geographic bounding box.
+The bounding box must be specified as a comma-separated string of four coordinates in the format:
+`min_longitude,min_lat,max_longitude,max_lat`
+The response is a GeoJSON FeatureCollection, ready to be rendered on a map.
+    """,
+    parameters=[
+        OpenApiParameter(
+            name="bbox",
+            description="Bounding box coordinates: min_lon,min_lat,max_lon,max_lat",
+            required=True,
+            type=str,
+            examples=[
+                OpenApiExample(
+                    name="Bounding Box Example",
+                    value="36.2,33.4,36.4,33.6",
+                )
+            ],
+        )
+    ],
     responses=UXORecordSerializer,
     tags=["Reports & Analytics", "Geospatial"],
 )

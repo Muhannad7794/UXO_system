@@ -1,33 +1,16 @@
 # reports/urls.py
 
 from django.urls import path
-from .views import (
-    statistics_views,
-    geospatial_views,
-)  # Assuming views are in these files
+from .views.statistics_views import StatisticsView
+from .views.geospatial_views import HeatmapView, RecordsWithinBboxView, HotZoneView
 
-# We will create/update these views in the next steps
 urlpatterns = [
-    # A single, powerful endpoint for all statistical queries.
-    # It will accept query parameters to define the analysis.
-    # e.g., /api/v1/reports/statistics/?group_by=ordnance_type&aggregate=danger_score__avg
+    # URL for the main statistics endpoint
+    path("statistics/", StatisticsView.as_view(), name="statistics"),
+    # URLs for the geospatial reporting endpoints
+    path("geospatial/heatmap/", HeatmapView.as_view(), name="heatmap"),
     path(
-        "statistics/",
-        statistics_views.StatisticsView.as_view(),
-        name="report-statistics",
+        "geospatial/within-bbox/", RecordsWithinBboxView.as_view(), name="within-bbox"
     ),
-    # An endpoint to generate data suitable for a heatmap visualization.
-    # It will return a list of coordinates and their weights (e.g., danger_score).
-    path(
-        "geospatial/heatmap/",
-        geospatial_views.HeatmapView.as_view(),
-        name="report-heatmap",
-    ),
-    # An endpoint to find all UXO records within a specified rectangular area (bounding box).
-    # e.g., /api/v1/reports/geospatial/within-bbox/?bbox=35.0,33.0,37.0,34.0
-    path(
-        "geospatial/within-bbox/",
-        geospatial_views.RecordsWithinBboxView.as_view(),
-        name="report-records-within-bbox",
-    ),
+    path("geospatial/hotzones/", HotZoneView.as_view(), name="hotzones"),
 ]
