@@ -32,6 +32,11 @@ UXO_system/
 │   └── tests.py
 │
 ├── uxo_records/                     # Structured UXO data storage
+│   ├── management/
+│   │       ├── commands/
+│   │              ├── __init__.py
+│   │              ├──import_regions.py
+│   │              ├──import_uxo_data.py
 │   ├── __init__.py
 │   ├── admin.py
 │   ├── apps.py
