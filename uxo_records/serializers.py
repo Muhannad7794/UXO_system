@@ -2,21 +2,19 @@
 
 from rest_framework import serializers
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
+from rest_framework_gis.fields import GeometryField  # <-- Import GeometryField
 from .models import UXORecord
 
 
 class UXORecordSerializer(GeoFeatureModelSerializer):
     """
-    A GeoJSON serializer for the UXORecord model.
-    This is the primary, functional serializer for the API.
+    A GeoJSON serializer for READING UXORecord model data.
+    This is used for all GET requests.
     """
-
-    # Explicitly define the 'id' field to ensure drf-spectacular compatibility.
-    id = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = UXORecord
-        geo_field = "location"  # The geometry field is now 'location'
+        geo_field = "location"
         id_field = "id"
         fields = [
             "id",
@@ -30,16 +28,32 @@ class UXORecordSerializer(GeoFeatureModelSerializer):
             "location",
             "danger_score",
         ]
+        read_only_fields = ["danger_score", "date_reported"]
 
 
-class UXORecordPropertiesSerializer(serializers.ModelSerializer):
+# --- NEW SERIALIZER FOR WRITE OPERATIONS ---
+class UXORecordWriteSerializer(serializers.ModelSerializer):
     """
-    A simple, non-GIS serializer for UXORecord.
-    Its only purpose is to be used by drf-spectacular to avoid a bug
-    when generating the schema for endpoints that return GeoJSON.
+    A standard serializer for CREATING AND UPDATING UXORecord instances.
+    Used for POST, PUT, PATCH requests. drf-spectacular can handle this without errors.
     """
+
+    # Still allows submitting geometry data in GeoJSON format
+    location = GeometryField()
 
     class Meta:
         model = UXORecord
-        # Exclude the geometry field to keep it simple
-        exclude = ["location"]
+        # List only the fields an admin should provide.
+        # 'danger_score' and 'date_reported' are excluded because they are set automatically.
+        fields = [
+            "region",
+            "ordnance_type",
+            "ordnance_condition",
+            "is_loaded",
+            "proximity_to_civilians",
+            "burial_status",
+            "location",
+        ]
+
+
+# We no longer need the UXORecordPropertiesSerializer, it has been replaced by the WriteSerializer
