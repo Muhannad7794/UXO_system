@@ -1,3 +1,5 @@
+# Dockerfile.gis - For the add_GIS branch (connecting to Azure DB)
+
 # Use official Python image
 FROM python:3.11-slim
 
@@ -6,22 +8,29 @@ ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
 # Set working directory
-WORKDIR /UXO_system_dockerized
+WORKDIR /UXO_system_dockerized_gis
 
-# Install system dependencies
-RUN apt-get update \
-    && apt-get install -y gcc default-libmysqlclient-dev libjpeg-dev zlib1g-dev pkg-config \
-    && apt-get clean
+# First, copy only the requirements file to leverage Docker's layer caching.
+# Assumes requirements.txt is in the same directory as this Dockerfile.gis
+COPY ./requirements.txt .
 
-# Install Python dependencies
-COPY requirements.txt /UXO_system_dockerized/
-RUN pip install --upgrade pip && pip install -r requirements.txt
+# Install system dependencies needed for GeoDjango (GDAL, GEOS, PROJ) and Python packages
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    binutils \
+    libproj-dev \
+    gdal-bin \
+    postgresql-client \
+    libgdal-dev \
+    build-essential && \
+    # Now, install Python packages
+    pip install --no-cache-dir -r requirements.txt && \
+    # Clean up apt cache to keep the image slim
+    apt-get purge -y --auto-remove build-essential && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-# Copy code
-COPY . /UXO_system_dockerized/
+# Now copy the rest of the application code into the container
+COPY . .
 
-# Collect static files (optional)
-# RUN python manage.py collectstatic --noinput
-
-# Default command
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# CMD is managed by docker-compose.gis.yml
