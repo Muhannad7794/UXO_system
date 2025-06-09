@@ -49,31 +49,30 @@ class AdminCitizenReportSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-# --- REFACTORED VERIFICATION SERIALIZER ---
 class ReportVerificationSerializer(serializers.Serializer):
     """
-    Defines the data an admin must provide to create a UXORecord from a report.
-    The fields now match the current UXORecord model and use ChoiceFields
-    to render as dropdowns in the DRF browsable API.
+    This serializer defines the fields for the admin verification form.
+    It now correctly pulls choices directly from the UXORecord model's fields.
     """
 
-    # These fields correspond to the Threat and Vulnerability parameters
-    # required by the UXORecord model.
-    ordnance_type = serializers.ChoiceField(choices=UXORecord.OrdnanceType.choices)
+    ordnance_type = serializers.ChoiceField(
+        choices=UXORecord._meta.get_field("ordnance_type").choices,
+        style={"base_template": "select.html", "class": "form-select"},
+    )
     ordnance_condition = serializers.ChoiceField(
-        choices=UXORecord.OrdnanceCondition.choices
+        choices=UXORecord._meta.get_field("ordnance_condition").choices,
+        style={"base_template": "select.html", "class": "form-select"},
     )
     is_loaded = serializers.BooleanField(
-        default=True, help_text="Is the ordnance considered to be loaded and fuzed?"
+        label="Is the ordnance considered to be loaded and fuzed?",
+        required=False,
+        style={"base_template": "checkbox.html", "class": "form-check-input"},
     )
     proximity_to_civilians = serializers.ChoiceField(
-        choices=UXORecord.ProximityStatus.choices
+        choices=UXORecord._meta.get_field("proximity_to_civilians").choices,
+        style={"base_template": "select.html", "class": "form-select"},
     )
-    burial_status = serializers.ChoiceField(choices=UXORecord.BurialStatus.choices)
-
-    # These methods are required by DRF's base Serializer class but we don't need custom logic.
-    def update(self, instance, validated_data):
-        pass
-
-    def create(self, validated_data):
-        pass
+    burial_status = serializers.ChoiceField(
+        choices=UXORecord._meta.get_field("burial_status").choices,
+        style={"base_template": "select.html", "class": "form-select"},
+    )

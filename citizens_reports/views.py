@@ -61,6 +61,12 @@ class VerifyCitizenReportView(generics.GenericAPIView):
     serializer_class = ReportVerificationSerializer  # Use the new serializer
     permission_classes = [permissions.IsAdminUser]
 
+    def get(self, request, *args, **kwargs):
+        report = self.get_object()
+        # Pass the specific report and an empty serializer form to the template
+        context = {"report": report, "serializer": self.get_serializer()}
+        return render(request, "citizens_reports/verification_form.html", context)
+
     @extend_schema(
         summary="Verify Citizen Report & Create UXO Record",
         description="Fill out the form to provide the necessary details. Submitting will create a new, official UXORecord and mark this report as 'verified'.",
