@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Reviewing Report #{{ report.id }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Reviewing Citizen Report #{{ report.id }}</h1>
+        <a href="{% url 'review-list' %}" class="btn btn-secondary">Back to List</a>
+    </div>
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between">
+            <strong>Submitted by: {{ report.name }} {{ report.last_name }}</strong>
+            <span class="text-muted">Received: {{ report.date_reported|date:"Y-m-d H:i" }}</span>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-5">
+                    <h5>Submitted Image</h5>
+                    <img src="{{ report.image.url }}" class="img-fluid rounded mb-3" alt="UXO Report Image">
+                    <hr>
+                    <h5>Reporter Information</h5>
+                    <p><strong>National Nr:</strong> {{ report.national_nr }}</p>
+                    <p><strong>Phone:</strong> {{ report.phone_number|default:"Not provided" }}</p>
+                </div>
+                <div class="col-md-7">
+                    <h5>Sighting Details</h5>
+                    <p class="card-text">{{ report.description }}</p>
+                    <p><strong>Reported Location:</strong></p>
+                    <div id="report-location-map" class="mini-map border rounded" style="height: 300px;" data-lat="{{ report.location.y }}" data-lng="{{ report.location.x }}"></div>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer text-end">
+            <a href="{% url 'verify-citizen-report' pk=report.id %}" class="btn btn-success">Proceed to Verification</a>
+            <button class="btn btn-danger">Reject Report</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+    <script src="{% static 'citizens_reports/js/review_list.js' %}"></script>
+{% endblock %}

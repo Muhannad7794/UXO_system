@@ -16,7 +16,7 @@ from django.views import View
 from django.shortcuts import render
 from django.contrib.gis.geos import Point
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.views.generic import ListView
+from django.views.generic import ListView, DetailView
 
 
 class SubmitCitizenReportView(generics.CreateAPIView):
@@ -191,3 +191,19 @@ class PendingReportsListView(LoginRequiredMixin, ListView):
         Override the default queryset to only return pending reports.
         """
         return CitizenReport.objects.filter(status="pending").order_by("date_reported")
+
+
+class PendingReportDetailView(LoginRequiredMixin, DetailView):
+    """
+    Admin-only page to display the details of a single pending citizen report.
+    """
+
+    model = CitizenReport
+    template_name = "citizens_reports/review_detail.html"
+    context_object_name = "report"
+
+    def get_queryset(self):
+        """
+        Ensure admins can only view pending reports on this page.
+        """
+        return CitizenReport.objects.filter(status="pending")

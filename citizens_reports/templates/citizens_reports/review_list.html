@@ -11,7 +11,9 @@
         {% for report in pending_reports %}
             <div class="card mb-4">
                 <div class="card-header d-flex justify-content-between">
-                    <strong>Report #{{ report.id }}</strong>
+                     <a href="{% url 'review-detail' pk=report.id %}" class="text-decoration-none text-dark">
+                        <strong>Report #{{ report.id }}</strong>
+                    </a>
                     <span class="text-muted">Received: {{ report.date_reported|date:"Y-m-d H:i" }}</span>
                 </div>
                 <div class="card-body">
