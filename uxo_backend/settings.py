@@ -136,14 +136,17 @@ USE_I18N = True
 
 USE_TZ = True
 
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
+# Frontend and URL configuration
+## Static files (CSS, JavaScript, Images)
+## https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = "static/"
 # Optional: Define STATIC_ROOT for collectstatic if you haven't already
 # STATIC_ROOT = BASE_DIR / "staticfiles"
 
+## Login redirect URL
+LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "/"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

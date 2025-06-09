@@ -1,6 +1,7 @@
 # In uxo_project/views.py
 
-from django.shortcuts import render
+from django.shortcuts import render, redirect
+from django.contrib.auth import logout
 
 
 def index(request):
@@ -9,3 +10,12 @@ def index(request):
     for displaying content to either authenticated admins or the public.
     """
     return render(request, "index.html")
+
+
+## Logout view
+def logout_view(request):
+    """
+    Logs the user out and redirects to the homepage.
+    """
+    logout(request)
+    return redirect("index")

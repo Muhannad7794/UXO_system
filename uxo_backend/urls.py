@@ -7,17 +7,25 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
     SpectacularRedocView,
 )
+from django.contrib.auth import views as auth_views
 from . import views
 
 urlpatterns = [
     # === Admin path ===
     path("admin/", admin.site.urls),
+    ## login path
+    path(
+        "login/", auth_views.LoginView.as_view(template_name="login.html"), name="login"
+    ),
+    ## logout path
+    path("logout/", views.logout_view, name="logout"),
+    
     # === Local apps paths ===
-    # All uxo_records URLs are under /api/v1/records/
+    ## uxo_records URLs are under /api/v1/records/
     path("api/v1/records/", include("uxo_records.urls")),
-    # All reports URLs are under /api/v1/reports/
+    ## reports URLs are under /api/v1/reports/
     path("api/v1/reports/", include("reports.urls")),
-    # All citizens_reports URLs are under /api/v1/citizen-reports/
+    ## citizens_reports URLs are under /api/v1/citizen-reports/
     path("api/v1/citizen-reports/", include("citizens_reports.urls")),
     # === Templates paths ===
     path("", views.index, name="index"),

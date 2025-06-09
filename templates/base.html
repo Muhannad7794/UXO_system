@@ -36,21 +36,21 @@
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
           <ul class="navbar-nav ms-auto">
-            {% if user.is_authenticated %}
-            <li class="nav-item">
-              <a class="nav-link" href="#">Admin Dashboard</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="#">Review Reports</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="#">Logout</a>
-            </li>
-            {% else %}
-            <li class="nav-item">
-              <a class="nav-link" href="#">Admin Login</a>
-            </li>
-            {% endif %}
+              {% if user.is_authenticated %}
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'index' %}">Admin Dashboard</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#">Review Reports</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'logout' %}">Logout</a>
+              </li>
+              {% else %}
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'login' %}">Admin Login</a>
+              </li>
+              {% endif %}
           </ul>
         </div>
       </div>
