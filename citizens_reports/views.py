@@ -12,6 +12,10 @@ from .serializers import (
     ReportVerificationSerializer,
 )
 
+from django.views import View
+from django.shortcuts import render
+from django.contrib.gis.geos import Point
+
 
 class SubmitCitizenReportView(generics.CreateAPIView):
     """
@@ -116,3 +120,46 @@ class VerifyCitizenReportView(generics.GenericAPIView):
                 {"error": f"Failed to create UXO record: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
+class CitizenReportFormView(View):
+    """
+    Handles the submission from the public-facing HTML form.
+    Receives all reporter details, image, and location data.
+    """
+
+    def post(self, request, *args, **kwargs):
+        # --- Get all the data from the form ---
+        name = request.POST.get("name")
+        last_name = request.POST.get("last_name")
+        national_nr = request.POST.get("national_nr")
+        phone_number = request.POST.get("phone_number")
+        description = request.POST.get("description")
+        location_str = request.POST.get("location")
+        image = request.FILES.get("image")
+
+        # --- Basic validation for required fields ---
+        if not all([name, last_name, national_nr, description, location_str]):
+            # In a real app, you would return a more specific error message
+            return render(request, "citizens_reports/partials/report_error.html")
+
+        # --- Create a GIS Point object from the "lat,lng" string ---
+        try:
+            lat_str, lng_str = location_str.split(",")
+            location_point = Point(float(lng_str), float(lat_str), srid=4326)
+        except (ValueError, IndexError):
+            return render(request, "citizens_reports/partials/report_error.html")
+
+        # --- Create the CitizenReport object in the database with all fields ---
+        CitizenReport.objects.create(
+            name=name,
+            last_name=last_name,
+            national_nr=national_nr,
+            phone_number=phone_number,
+            description=description,
+            location=location_point,
+            image=image,
+        )
+
+        # Render and return the success message HTML snippet
+        return render(request, "citizens_reports/partials/report_success.html")

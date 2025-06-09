@@ -1,8 +1,5 @@
-{% extends 'base.html' %}
-{% load static %}
-
-{% block title %}Homepage - {{ block.super }}{% endblock %}
-{% block content %} {% if user.is_authenticated %}
+{% extends 'base.html' %} {% load static %} {% block title %}Homepage - {{
+block.super }}{% endblock %} {% block content %} {% if user.is_authenticated %}
 <div class="p-5 mb-4 bg-light rounded-3">
   <div class="container-fluid py-5">
     <h1 class="display-5 fw-bold">Administrator Dashboard</h1>
@@ -27,41 +24,100 @@
     </p>
     <hr />
 
-    <form>
-      <div class="mb-3">
-        <label for="description" class="form-label">Description</label>
-        <textarea
-          class="form-control"
-          id="description"
-          rows="3"
-          placeholder="Describe the object and its surroundings..."
-        ></textarea>
-      </div>
-      <div class="mb-3">
-        <label for="location" class="form-label">Location</label>
-        <input
-          type="text"
-          class="form-control"
-          id="location"
-          placeholder="Click on the map to set location..."
-        />
-        <div
-          id="report-map"
-          style="height: 300px; margin-top: 10px"
-          class="border rounded"
-        ></div>
-      </div>
-      <div class="mb-3">
-        <label for="image" class="form-label">Upload Image</label>
-        <input class="form-control" type="file" id="image" />
-      </div>
-      <button type="submit" class="btn btn-primary w-100">Submit Report</button>
-    </form>
+    <div id="report-form-container">
+      <form
+        hx-post="{% url 'submit-citizen-report-form' %}"
+        hx-target="#report-form-container"
+        hx-swap="innerHTML"
+        enctype="multipart/form-data"
+      >
+        {% csrf_token %}
+
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label for="name" class="form-label">First Name</label>
+            <input
+              type="text"
+              name="name"
+              class="form-control"
+              id="name"
+              required
+            />
+          </div>
+          <div class="col-md-6 mb-3">
+            <label for="last_name" class="form-label">Last Name</label>
+            <input
+              type="text"
+              name="last_name"
+              class="form-control"
+              id="last_name"
+              required
+            />
+          </div>
+        </div>
+        <div class="mb-3">
+          <label for="national_nr" class="form-label">National Number</label>
+          <input
+            type="text"
+            name="national_nr"
+            class="form-control"
+            id="national_nr"
+            required
+          />
+        </div>
+        <div class="mb-3">
+          <label for="phone_number" class="form-label"
+            >Phone Number (Optional)</label
+          >
+          <input
+            type="text"
+            name="phone_number"
+            class="form-control"
+            id="phone_number"
+          />
+        </div>
+        <div class="mb-3">
+          <label for="description" class="form-label">Description</label>
+          <textarea
+            name="description"
+            class="form-control"
+            id="description"
+            rows="3"
+            placeholder="Describe the object, its condition, and its surroundings..."
+            required
+          ></textarea>
+        </div>
+        <div class="mb-3">
+          <label for="location" class="form-label">Location</label>
+          <p class="form-text text-muted">
+            Click on the map below to place a pin at the exact location.
+          </p>
+          <div
+            id="report-map"
+            style="height: 300px; margin-top: 10px"
+            class="border rounded"
+          ></div>
+          <input type="hidden" name="location" id="location-input" required />
+        </div>
+        <div class="mb-3">
+          <label for="image" class="form-label">Upload Image</label>
+          <input
+            name="image"
+            class="form-control"
+            type="file"
+            id="image"
+            accept="image/*"
+          />
+        </div>
+        <button type="submit" class="btn btn-primary w-100">
+          Submit Report
+        </button>
+      </form>
+    </div>
   </div>
+  {% endif %} {% endblock %} {% block scripts %} {% if user.is_authenticated %}
+  <script src="{% static 'reports/js/dashboard.js' %}"></script>
+  {% else %}
+  <script src="{% static 'citizens_reports/js/report_form.js' %}"></script>
+  {% endif %} {% endblock %}
 </div>
-{% endif %} {% endblock %}
-{% block scripts %}
-    {% if user.is_authenticated %}
-        <script src="{% static 'reports/js/dashboard.js' %}"></script>
-    {% endif %}
-{% endblock %}

@@ -47,27 +47,35 @@ UXO_system/
 │   ├── signals.py                  # Triggers danger score calculation upon adding new record(s)
 │   ├── urls.py
 │   └── tests.py
-reports/
+├── reports/
 │   ├── views/
-│         ├── statistics_views.py
-│         ├── geospatial_views.py
-├── __init__.py
-├── admin.py
-├── apps.py
-├── models.py
-├── views.py
-├── urls.py
-├── tests.py
-├── migrations/
-├── templates/
-│   └── reports/
-├── static/
-│    └── reports/
-│       ├── css/
-│       └── js/
-│
-│
+│   │   ├── statistics_views.py
+│   │   ├── geospatial_views.py
+│   ├── __init__.py
+│   ├── admin.py
+│   ├── apps.py
+│   ├── models.py
+│   ├── views.py
+│   ├── urls.py
+│   ├── tests.py
+│   ├── migrations/
+│   ├── templates/
+│   │   └── reports/
+│   ├── static/
+│       └── reports/
+│           ├── css/
+│           └── js/
+│               ├── dashboard.js
 ├── citizens_reports/               # Civilian-submitted UXO reports
+│   ├── static/
+│   │   └── citizens_reports/
+│   │        ├── js/
+│   │             ├── report_form.js
+│   ├── templates/
+│   │   └── citizens_reports/
+│   │       ├── partials/
+│   │           ├── report_error.js
+│   │           ├── report_success.js
 │   ├── __init__.py
 │   ├── admin.py
 │   ├── apps.py
@@ -76,7 +84,7 @@ reports/
 │   ├── serializers.py
 │   ├── urls.py
 │   └── tests.py
-####################### Frontend ########################
 └── templates/   
     ├── base.html
-    └── index.html
+    ├──index.html
+    └── login.html

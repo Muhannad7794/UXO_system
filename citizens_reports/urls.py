@@ -6,9 +6,10 @@ from .views import (
     ListCitizenReportsView,
     RetrieveDeleteCitizenReportView,
     VerifyCitizenReportView,
+    CitizenReportFormView,
 )
 
-urlpatterns = [
+api_urlpatterns = [
     # Public endpoint for submitting a new report
     path("submit/", SubmitCitizenReportView.as_view(), name="submit-citizen-report"),
     # Admin endpoint to list all reports for review
@@ -26,3 +27,14 @@ urlpatterns = [
         name="verify-citizen-report",
     ),
 ]
+
+web_urlpatterns = [
+    path(
+        "submit-form/",
+        CitizenReportFormView.as_view(),
+        name="submit-citizen-report-form",
+    ),
+]
+
+# Combine the url lists to be discoverable by Django
+urlpatterns = web_urlpatterns + api_urlpatterns
