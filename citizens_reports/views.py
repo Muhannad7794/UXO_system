@@ -11,7 +11,7 @@ from .serializers import (
     AdminCitizenReportSerializer,
     ReportVerificationSerializer,
 )
-
+from .forms import ReportVerificationForm
 from django.views import View
 from django.shortcuts import render
 from django.contrib.gis.geos import Point
@@ -63,8 +63,11 @@ class VerifyCitizenReportView(generics.GenericAPIView):
 
     def get(self, request, *args, **kwargs):
         report = self.get_object()
-        # Pass the specific report and an empty serializer form to the template
-        context = {"report": report, "serializer": self.get_serializer()}
+        # Instead of the serializer, we now pass our new Django Form to the template
+        context = {
+            "report": report,
+            "form": ReportVerificationForm(),  # <-- USE THE NEW FORM
+        }
         return render(request, "citizens_reports/verification_form.html", context)
 
     @extend_schema(
