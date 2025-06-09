@@ -49,12 +49,11 @@ INSTALLED_APPS = [
     "django_filters",  # ADDED: For filtering support in DRF
     "drf_spectacular",
     "django_htmx",  # ADDED: HTMX support for Django
-    "leaflet",
     # local apps
-    "uxo_records.apps.UxoRecordsConfig",
-    "danger_score.apps.DangerScoreConfig",
-    "citizens_reports.apps.CitizensReportsConfig",
-    "reports.apps.ReportsConfig",
+    "uxo_records",
+    "danger_score",
+    "citizens_reports",
+    "reports",
 ]
 
 MIDDLEWARE = [

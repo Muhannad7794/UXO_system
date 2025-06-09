@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Homepage - {{ block.super }}{% endblock %}
 {% block content %} {% if user.is_authenticated %}
@@ -58,9 +59,9 @@
     </form>
   </div>
 </div>
-{% endif %} {% endblock %} {% block scripts %}
-<script>
-  // We will add the JavaScript for initializing the maps here later.
-  console.log("Page-specific script block is working.");
-</script>
+{% endif %} {% endblock %}
+{% block scripts %}
+    {% if user.is_authenticated %}
+        <script src="{% static 'reports/js/dashboard.js' %}"></script>
+    {% endif %}
 {% endblock %}

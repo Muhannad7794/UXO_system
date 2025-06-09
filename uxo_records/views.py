@@ -1,12 +1,13 @@
-# uxo_records/views.py
+# in uxo_records/views.py
 
-from rest_framework import viewsets, permissions, filters, mixins
-from rest_framework.pagination import PageNumberPagination
+from rest_framework import viewsets, permissions
+from rest_framework.decorators import action  # <-- IMPORT THIS
+from rest_framework.response import Response  # <-- IMPORT THIS
+from rest_framework.pagination import PageNumberPagination  # Make sure this is imported
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters
 
 from .models import UXORecord
-
-# Import both serializers
 from .serializers import UXORecordSerializer, UXORecordWriteSerializer
 from .filters import UXORecordFilter
 
@@ -17,9 +18,7 @@ class UXORecordPagination(PageNumberPagination):
     max_page_size = 100
 
 
-class UXORecordViewSet(
-    viewsets.ModelViewSet
-):  # Using ModelViewSet is fine with this pattern
+class UXORecordViewSet(viewsets.ModelViewSet):
     """
     API endpoint for viewing and managing UXO records.
     Uses different serializers for reading vs. writing data to avoid schema errors.
@@ -27,7 +26,7 @@ class UXORecordViewSet(
 
     queryset = UXORecord.objects.all().order_by("-danger_score", "-id")
     permission_classes = [permissions.IsAdminUser]
-    pagination_class = UXORecordPagination
+    pagination_class = UXORecordPagination  # <-- Keep this for the main endpoint
     filter_backends = [
         DjangoFilterBackend,
         filters.SearchFilter,
@@ -46,3 +45,14 @@ class UXORecordViewSet(
         if self.action in ["create", "update", "partial_update"]:
             return UXORecordWriteSerializer
         return UXORecordSerializer
+
+    # v-- ADD THIS NEW METHOD --v
+    @action(detail=False, methods=["get"], pagination_class=None)
+    def all_records(self, request):
+        """
+        Custom endpoint to return all records without pagination,
+        specifically for map visualization.
+        """
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
