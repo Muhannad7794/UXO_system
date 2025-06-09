@@ -15,6 +15,8 @@ from .serializers import (
 from django.views import View
 from django.shortcuts import render
 from django.contrib.gis.geos import Point
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views.generic import ListView
 
 
 class SubmitCitizenReportView(generics.CreateAPIView):
@@ -122,6 +124,7 @@ class VerifyCitizenReportView(generics.GenericAPIView):
             )
 
 
+## ==== Web Views to serve the Frontend ====
 class CitizenReportFormView(View):
     """
     Handles the submission from the public-facing HTML form.
@@ -163,3 +166,19 @@ class CitizenReportFormView(View):
 
         # Render and return the success message HTML snippet
         return render(request, "citizens_reports/partials/report_success.html")
+
+
+class PendingReportsListView(LoginRequiredMixin, ListView):
+    """
+    Admin-only page to list all citizen reports with a 'pending' status.
+    """
+
+    model = CitizenReport
+    template_name = "citizens_reports/review_list.html"
+    context_object_name = "pending_reports"  # Name to use in the template loop
+
+    def get_queryset(self):
+        """
+        Override the default queryset to only return pending reports.
+        """
+        return CitizenReport.objects.filter(status="pending").order_by("date_reported")

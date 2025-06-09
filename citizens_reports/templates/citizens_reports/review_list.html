@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Review Pending Reports - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Pending Citizen Reports</h1>
+
+    {% if pending_reports %}
+        {% for report in pending_reports %}
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between">
+                    <strong>Report #{{ report.id }}</strong>
+                    <span class="text-muted">Received: {{ report.date_reported|date:"Y-m-d H:i" }}</span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-7">
+                            <h5 class="card-title">Reporter Information</h5>
+                            <ul class="list-group list-group-flush mb-3">
+                                <li class="list-group-item"><strong>Name:</strong> {{ report.name }} {{ report.last_name }}</li>
+                                <li class="list-group-item"><strong>National Nr:</strong> {{ report.national_nr }}</li>
+                                <li class="list-group-item"><strong>Phone:</strong> {{ report.phone_number|default:"Not provided" }}</li>
+                            </ul>
+                            <h5 class="card-title">Sighting Details</h5>
+                            <p class="card-text">{{ report.description }}</p>
+                        </div>
+                        <div class="col-md-5">
+                            <h5 class="card-title">Evidence</h5>
+                            <p><strong>Submitted Image:</strong></p>
+                            <img src="{{ report.image.url }}" class="img-fluid rounded mb-3" alt="UXO Report Image">
+                            <p><strong>Reported Location:</strong></p>
+                            <div id="map-{{ report.id }}" class="mini-map border rounded" style="height: 250px;"
+                                 data-lat="{{ report.location.y }}" data-lng="{{ report.location.x }}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer text-end">
+                    <a href="{% url 'verify-citizen-report' pk=report.id %}" class="btn btn-success">Verify</a>
+                    <button class="btn btn-danger">Reject</button>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-info">
+            There are no pending reports to review at this time.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+
+{% block scripts %}
+    <script src="{% static 'citizens_reports/js/review_list.js' %}"></script>
+{% endblock %}
