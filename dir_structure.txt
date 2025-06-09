@@ -15,6 +15,7 @@ UXO_system/
 │   ├── urls.py
 │   ├── asgi.py
 │   └── wsgi.py
+│   └── views.py
 │
 ├── danger_score/                    # Risk score calculation logic
 │   ├── __init__.py
@@ -75,3 +76,7 @@ reports/
 │   ├── serializers.py
 │   ├── urls.py
 │   └── tests.py
+####################### Frontend ########################
+└── templates/   
+    ├── base.html
+    └── index.html

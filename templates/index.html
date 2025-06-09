@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}Homepage - {{ block.super }}{% endblock %}
+{% block content %} {% if user.is_authenticated %}
+<div class="p-5 mb-4 bg-light rounded-3">
+  <div class="container-fluid py-5">
+    <h1 class="display-5 fw-bold">Administrator Dashboard</h1>
+    <p class="col-md-8 fs-4">
+      Welcome, {{ user.username }}. From here you can view statistics, review
+      pending citizen reports, and manage existing UXO records.
+    </p>
+    <button class="btn btn-primary btn-lg" type="button">View Reports</button>
+  </div>
+</div>
+
+<h2>Risk Map Overview</h2>
+<div id="map" style="height: 400px" class="border rounded"></div>
+
+{% else %}
+<div class="row">
+  <div class="col-md-8 mx-auto">
+    <h1 class="text-center">Report Unexploded Ordnance (UXO)</h1>
+    <p class="text-center text-muted">
+      If you have seen a suspected explosive device, please provide the details
+      below. Your report will be reviewed by an administrator.
+    </p>
+    <hr />
+
+    <form>
+      <div class="mb-3">
+        <label for="description" class="form-label">Description</label>
+        <textarea
+          class="form-control"
+          id="description"
+          rows="3"
+          placeholder="Describe the object and its surroundings..."
+        ></textarea>
+      </div>
+      <div class="mb-3">
+        <label for="location" class="form-label">Location</label>
+        <input
+          type="text"
+          class="form-control"
+          id="location"
+          placeholder="Click on the map to set location..."
+        />
+        <div
+          id="report-map"
+          style="height: 300px; margin-top: 10px"
+          class="border rounded"
+        ></div>
+      </div>
+      <div class="mb-3">
+        <label for="image" class="form-label">Upload Image</label>
+        <input class="form-control" type="file" id="image" />
+      </div>
+      <button type="submit" class="btn btn-primary w-100">Submit Report</button>
+    </form>
+  </div>
+</div>
+{% endif %} {% endblock %} {% block scripts %}
+<script>
+  // We will add the JavaScript for initializing the maps here later.
+  console.log("Page-specific script block is working.");
+</script>
+{% endblock %}

@@ -7,16 +7,20 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
     SpectacularRedocView,
 )
+from . import views
 
 urlpatterns = [
+    # === Admin path ===
     path("admin/", admin.site.urls),
-    # === Local apps paths - Each app now has its own unique namespace ===
-    # All uxo_records URLs will be under /api/v1/records/
+    # === Local apps paths ===
+    # All uxo_records URLs are under /api/v1/records/
     path("api/v1/records/", include("uxo_records.urls")),
-    # All reports URLs will be under /api/v1/reports/
+    # All reports URLs are under /api/v1/reports/
     path("api/v1/reports/", include("reports.urls")),
-    # All citizens_reports URLs will be under /api/v1/citizen-reports/
+    # All citizens_reports URLs are under /api/v1/citizen-reports/
     path("api/v1/citizen-reports/", include("citizens_reports.urls")),
+    # === Templates paths ===
+    path("", views.index, name="index"),
     # === Schema & Docs ===
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     # The UI paths are fine as they are

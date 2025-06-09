@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "rest_framework_gis",  # ADDED: DRF GIS for GeoJSON support
     "django_filters",  # ADDED: For filtering support in DRF
     "drf_spectacular",
+    "django_htmx",  # ADDED: HTMX support for Django
     "leaflet",
     # local apps
     "uxo_records.apps.UxoRecordsConfig",
@@ -59,6 +60,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django_htmx.middleware.HtmxMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -71,10 +73,11 @@ ROOT_URLCONF = "uxo_backend.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [os.path.join(BASE_DIR, "templates")],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
+                "django.template.context_processors.debug",
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
