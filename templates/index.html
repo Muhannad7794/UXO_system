@@ -9,35 +9,53 @@ block.super }}{% endblock %} {% block content %} {% if user.is_authenticated %}
     </div>
     <div class="card-body">
         <form id="filter-form">
-            <div class="row">
-                <div class="col-md-3">
-                    <label for="ordnance_type" class="form-label">Ordnance Type</label>
-                    <select name="ordnance_type" class="form-select" id="ordnance_type">
-                        <option value="">All Types</option>
-                        {% for value, display_name in ordnance_type_choices %}
-                            <option value="{{ value }}">{{ display_name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label for="ordnance_condition" class="form-label">Condition</label>
-                    <select name="ordnance_condition" class="form-select" id="ordnance_condition">
-                        <option value="">All Conditions</option>
-                        {% for value, display_name in ordnance_condition_choices %}
-                            <option value="{{ value }}">{{ display_name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-3">
-                  <label for="danger_score_min" class="form-label">Min Danger Score</label>
-                  <input type="number" name="danger_score_min" id="danger_score_min" class="form-control" step="0.01" min="0" max="1">
-              </div>
-              <div class="col-md-3">
-                  <label for="danger_score_max" class="form-label">Max Danger Score</label>
-                  <input type="number" name="danger_score_max" id="danger_score_max" class="form-control" step="0.01" min="0" max="1">
-              </div>
-            </div>
-        </form>
+    <div class="row g-3">
+        <div class="col-md-3">
+            <label for="ordnance_type" class="form-label">Ordnance Type</label>
+            <select name="ordnance_type" class="form-select" id="ordnance_type">
+                <option value="">All Types</option>
+                {% for value, display_name in ordnance_type_choices %}
+                    <option value="{{ value }}">{{ display_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label for="ordnance_condition" class="form-label">Condition</label>
+            <select name="ordnance_condition" class="form-select" id="ordnance_condition">
+                <option value="">All Conditions</option>
+                {% for value, display_name in ordnance_condition_choices %}
+                    <option value="{{ value }}">{{ display_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label for="burial_status" class="form-label">Burial Status</label>
+            <select name="burial_status" class="form-select" id="burial_status">
+                <option value="">All Statuses</option>
+                {% for value, display_name in burial_status_choices %}
+                    <option value="{{ value }}">{{ display_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label for="proximity_to_civilians" class="form-label">Proximity</label>
+            <select name="proximity_to_civilians" class="form-select" id="proximity_to_civilians">
+                <option value="">All Proximities</option>
+                {% for value, display_name in proximity_to_civilians_choices %}
+                    <option value="{{ value }}">{{ display_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label for="danger_score_min" class="form-label">Min Danger Score</label>
+            <input type="number" name="danger_score_min" id="danger_score_min" class="form-control" step="0.01" min="0" max="1">
+        </div>
+        <div class="col-md-6">
+            <label for="danger_score_max" class="form-label">Max Danger Score</label>
+            <input type="number" name="danger_score_max" id="danger_score_max" class="form-control" step="0.01" min="0" max="1">
+        </div>
+    </div>
+</form>
     </div>
 </div>
 

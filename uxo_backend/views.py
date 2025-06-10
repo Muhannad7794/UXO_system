@@ -18,7 +18,11 @@ def index(request):
             "ordnance_condition_choices": UXORecord._meta.get_field(
                 "ordnance_condition"
             ).choices,
+            # ADD THESE TWO LINES
             "burial_status_choices": UXORecord._meta.get_field("burial_status").choices,
+            "proximity_to_civilians_choices": UXORecord._meta.get_field(
+                "proximity_to_civilians"
+            ).choices,
         }
     return render(request, "index.html", context)
 
