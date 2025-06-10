@@ -1,32 +1,49 @@
-# uxo_records/filters.py
+# In uxo_records/filters.py
 
 import django_filters
 from .models import UXORecord
 
+# ADD THIS IMPORT for MultipleChoiceFilter
+from django_filters import MultipleChoiceFilter
+
 
 class UXORecordFilter(django_filters.FilterSet):
     """
-    Custom FilterSet for the new UXORecord model.
-    Defines the specific filter lookups available for the API.
+    Custom FilterSet for the UXORecord model.
+    - Supports multi-select for choice fields.
+    - Supports min/max range for danger_score from separate form inputs.
     """
 
-    # Filter for danger_score using a numeric range (e.g., ?danger_score=0.5,0.8)
-    danger_score = django_filters.RangeFilter()
+    # --- Use two separate NumberFilters to match the form's min/max inputs ---
+    danger_score_min = django_filters.NumberFilter(
+        field_name="danger_score", lookup_expr="gte"
+    )
+    danger_score_max = django_filters.NumberFilter(
+        field_name="danger_score", lookup_expr="lte"
+    )
 
-    # Allow filtering by the related Region's name
+    # --- Define choice fields as MultipleChoiceFilter to accept multiple values ---
+    ordnance_type = MultipleChoiceFilter(
+        choices=UXORecord._meta.get_field("ordnance_type").choices
+    )
+    ordnance_condition = MultipleChoiceFilter(
+        choices=UXORecord._meta.get_field("ordnance_condition").choices
+    )
+    burial_status = MultipleChoiceFilter(
+        choices=UXORecord._meta.get_field("burial_status").choices
+    )
+    proximity_to_civilians = MultipleChoiceFilter(
+        choices=UXORecord._meta.get_field("proximity_to_civilians").choices
+    )
+
+    # --- Keep your existing custom filter for region name searching ---
     region = django_filters.CharFilter(
         field_name="region__name", lookup_expr="icontains"
     )
 
     class Meta:
         model = UXORecord
-        # Define all fields that can be used for exact-match filtering
+        # The fields list now only needs to contain fields that don't have a custom definition above.
         fields = [
-            "ordnance_type",
-            "ordnance_condition",
             "is_loaded",
-            "proximity_to_civilians",
-            "burial_status",
-            "danger_score",  # Also allows exact match
-            "region",  # Allows filtering by region ID
         ]
