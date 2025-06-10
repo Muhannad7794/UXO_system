@@ -9,6 +9,8 @@ UXO_system/
 ├── README.md                        # Project overview and documentation
 ├── requirements.txt                 # Python dependencies
 │
+├── meida/                           # contains the media files served and stored by Dajngo
+│
 ├── uxo_backend/                     # Django project settings
 │   ├── __init__.py
 │   ├── settings.py
@@ -41,6 +43,7 @@ UXO_system/
 │   ├── __init__.py
 │   ├── admin.py
 │   ├── apps.py
+│   ├── filters.py
 │   ├── models.py
 │   ├── views.py
 │   ├── serializers.py
@@ -65,7 +68,7 @@ UXO_system/
 │       └── reports/
 │           ├── css/
 │           └── js/
-│               ├── dashboard.js
+│               └── dashboard.js
 ├── citizens_reports/               # Civilian-submitted UXO reports
 │   ├── static/
 │   │   └── citizens_reports/
@@ -74,11 +77,15 @@ UXO_system/
 │   ├── templates/
 │   │   └── citizens_reports/
 │   │       ├── partials/
-│   │           ├── report_error.js
-│   │           ├── report_success.js
+│   │       │   ├── report_error.js
+│   │       │   └── report_success.js
+│   │       ├── review_details.html
+│   │       ├── review_list.html
+│   │       ├── verification_form.html
 │   ├── __init__.py
 │   ├── admin.py
 │   ├── apps.py
+│   ├── forms.py
 │   ├── models.py
 │   ├── views.py
 │   ├── serializers.py
