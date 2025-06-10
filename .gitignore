@@ -1,0 +1,76 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+# Unit test / coverage reports
+htmlcov/
+coverage/
+coverage_report/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+.migrations/
+migrations/
+*_initial.py
+__pycache__/
+MEDIA_ROOT/
+# Environments
+.env
+.venv
+.env.gis
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.vscode/
+#local files
+citizen_reports/
+certificates/
+source_files/
+performance_reports/
+media/
+MEDIA_ROOT/
+posters/
+gh_actions_reports/
+theory/
+.dockerignore
+node_modules/
+*_.csv
+*.csv
