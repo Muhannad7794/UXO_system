@@ -10,6 +10,7 @@ from .views import (
     CitizenReportFormView,
     PendingReportsListView,
     PendingReportDetailView,
+    RejectReportView,
 )
 
 api_urlpatterns = [
@@ -39,6 +40,7 @@ web_urlpatterns = [
     ),
     path("review/", PendingReportsListView.as_view(), name="review-list"),
     path("review/<int:pk>/", PendingReportDetailView.as_view(), name="review-detail"),
+    path("review/<int:pk>/reject/", RejectReportView.as_view(), name="reject-report"),
 ]
 
 # Combine the url lists to be discoverable by Django

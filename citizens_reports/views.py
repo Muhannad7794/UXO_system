@@ -14,6 +14,9 @@ from .serializers import (
 from .forms import ReportVerificationForm
 from django.views import View
 from django.shortcuts import render
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.gis.geos import Point
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView, DetailView
@@ -207,3 +210,22 @@ class PendingReportDetailView(LoginRequiredMixin, DetailView):
         Ensure admins can only view pending reports on this page.
         """
         return CitizenReport.objects.filter(status="pending")
+
+
+class RejectReportView(LoginRequiredMixin, View):
+    """
+    Handles the POST request to reject a citizen report.
+    """
+
+    def post(self, request, *args, **kwargs):
+        # Get the primary key from the URL
+        report_id = self.kwargs.get("pk")
+        # Safely get the report object or return a 404 error
+        report = get_object_or_404(CitizenReport, pk=report_id)
+
+        # Update the status and save
+        report.status = "rejected"
+        report.save()
+
+        # Return an empty response, which HTMX will use to remove the element
+        return HttpResponse("")

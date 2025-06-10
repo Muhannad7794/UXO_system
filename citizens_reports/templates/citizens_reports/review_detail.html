@@ -35,7 +35,13 @@
         </div>
         <div class="card-footer text-end">
             <a href="{% url 'verify-citizen-report' pk=report.id %}" class="btn btn-success">Proceed to Verification</a>
-            <button class="btn btn-danger">Reject Report</button>
+           <button class="btn btn-danger"
+                        hx-post="{% url 'reject-report' pk=report.id %}"
+                        hx-confirm="Are you sure you want to reject this report? This action cannot be undone."
+                        hx-target="closest .card"
+                        hx-swap="outerHTML">
+                    Reject
+            </button>
         </div>
     </div>
 </div>
