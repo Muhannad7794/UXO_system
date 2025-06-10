@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Reports & Statistics - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Reports & Statistics</h1>
+
+    <div class="card">
+        <div class="card-header">
+            <h4>Report Generator</h4>
+        </div>
+        <div class="card-body">
+            <form id="stats-form">
+                <div class="row align-items-end g-3">
+                    <div class="col-md-3">
+                        <label for="analysis_type" class="form-label">Analysis Type</label>
+                        <select name="analysis_type" id="analysis_type" class="form-select">
+                            <option value="grouped">Grouped Analysis</option>
+                            <option value="aggregate">Aggregate Analysis</option>
+                        </select>
+                    </div>
+
+                    <div id="grouped-fields" class="col-md-6 row g-3">
+                        <div class="col-md-6">
+                            <label for="group_by" class="form-label">Group By</label>
+                            <select name="group_by" id="group_by" class="form-select">
+                                {% for field_value, display_name in grouping_choices %}
+                                    <option value="{{ field_value }}">{{ display_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="aggregate_op" class="form-label">Operation</label>
+                            <select name="aggregate_op" id="aggregate_op" class="form-select">
+                                <option value="count">Count</option>
+                                <option value="avg">Average</option>
+                                <option value="sum">Sum</option>
+                                <option value="max">Max</option>
+                                <option value="min">Min</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="aggregate-fields" class="col-md-3" style="display: none;">
+                        <label for="operation" class="form-label">Operation</label>
+                        <select name="operation" id="operation" class="form-select">
+                            <option value="count">Count</option>
+                            <option value="avg">Average</option>
+                            <option value="sum">Sum</option>
+                            <option value="max">Max</option>
+                            <option value="min">Min</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-primary w-100">Generate Report</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="report-results" class="mt-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 id="results-title" class="card-title">Report Results</h5>
+                <p id="results-placeholder" class="card-text text-muted">Select your report criteria and click "Generate Report" to see the results.</p>
+                <div id="chart-container" style="display: none;">
+                    <canvas id="stats-chart"></canvas>
+                </div>
+                <div id="table-container" class="mt-3"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+    <script src="{% static 'reports/js/statistics.js' %}"></script>
+{% endblock %}

@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 uxoPointsLayer.clearLayers();
                 L.geoJSON(data.features || data, { // Handle both paginated and direct GeoJSON
                     pointToLayer: (feature, latlng) => L.circleMarker(latlng, {
-                        radius: 6, fillColor: getPinColor(feature.properties.danger_score), color: '#000', weight: 1, opacity: 1, fillOpacity: 0.8
+                        radius: 3, fillColor: getPinColor(feature.properties.danger_score), color: '#000', weight: 1, opacity: 1, fillOpacity: 0.8
                     }),
                     onEachFeature: (feature, layer) => {
                         const props = feature.properties;

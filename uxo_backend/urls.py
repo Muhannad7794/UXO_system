@@ -12,6 +12,13 @@ from drf_spectacular.views import (
 from django.contrib.auth import views as auth_views
 from . import views
 
+# Import the specific url lists from your apps
+from reports.urls import api_urlpatterns as reports_api_urls
+from reports.urls import web_urlpatterns as reports_web_urls
+from citizens_reports.urls import web_urlpatterns as citizens_web_urls
+from citizens_reports.urls import api_urlpatterns as citizens_api_urls
+
+
 urlpatterns = [
     # Admin and Auth
     path("admin/", admin.site.urls),
@@ -19,16 +26,17 @@ urlpatterns = [
         "login/", auth_views.LoginView.as_view(template_name="login.html"), name="login"
     ),
     path("logout/", views.logout_view, name="logout"),
-    # Template Pages
+    # --- WEB PAGE URLS ---
     path("", views.index, name="index"),
-    # This includes the /review/ URL we created
-    path("", include("citizens_reports.urls")),
-    # API Endpoints
+    path("", include(citizens_web_urls)),
+    path("reports/", include(reports_web_urls)),  # Will create /reports/statistics/
+    # --- API ENDPOINTS ---
     path("api/v1/records/", include("uxo_records.urls")),
-    path("api/v1/reports/", include("reports.urls")),
-    # This includes the /api/v1/citizen-reports/review/<pk>/verify/ URL
-    path("api/v1/citizen-reports/", include("citizens_reports.urls")),
-    # Schema & Docs
+    path(
+        "api/v1/reports/", include(reports_api_urls)
+    ),  # Will create /api/v1/reports/statistics/
+    path("api/v1/citizen-reports/", include(citizens_api_urls)),
+    # --- Schema & Docs ---
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path(
         "api/docs/",
@@ -38,6 +46,6 @@ urlpatterns = [
     path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
 ]
 
-
+# Media file serving for development
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
