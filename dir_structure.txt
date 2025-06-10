@@ -54,6 +54,10 @@ UXO_system/
 │   ├── views/
 │   │   ├── statistics_views.py
 │   │   ├── geospatial_views.py
+│   ├── management/
+│   │       ├── commands/
+│   │              ├── __init__.py
+│   │              ├──genrate_hotzones.py
 │   ├── __init__.py
 │   ├── admin.py
 │   ├── apps.py
