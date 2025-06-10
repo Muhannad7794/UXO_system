@@ -62,10 +62,13 @@ block.super }}{% endblock %} {% block content %} {% if user.is_authenticated %}
           <div class="col-md-4">
               <label for="danger_score_max" class="form-label">Max Danger Score</label>
               <input type="number" name="danger_score_max" id="danger_score_max" class="form-control" step="0.01" min="0" max="1">
+          <div class="col-12 text-end">
+            <button type="button" id="clear-area-filter" class="btn btn-outline-secondary">Clear Area Filter</button>
           </div>
+        </div>
       </div>
   </form>
-    </div>
+  </div>
 </div>
 
 <h2>Risk Map Overview</h2>
