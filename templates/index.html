@@ -1,14 +1,44 @@
 {% extends 'base.html' %} {% load static %} {% block title %}Homepage - {{
 block.super }}{% endblock %} {% block content %} {% if user.is_authenticated %}
 <div class="p-5 mb-4 bg-light rounded-3">
-  <div class="container-fluid py-5">
-    <h1 class="display-5 fw-bold">Administrator Dashboard</h1>
-    <p class="col-md-8 fs-4">
-      Welcome, {{ user.username }}. From here you can view statistics, review
-      pending citizen reports, and manage existing UXO records.
-    </p>
-    <button class="btn btn-primary btn-lg" type="button">View Reports</button>
-  </div>
+    </div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h4>Filter UXO Records</h4>
+    </div>
+    <div class="card-body">
+        <form id="filter-form">
+            <div class="row">
+                <div class="col-md-3">
+                    <label for="ordnance_type" class="form-label">Ordnance Type</label>
+                    <select name="ordnance_type" class="form-select" id="ordnance_type">
+                        <option value="">All Types</option>
+                        {% for value, display_name in ordnance_type_choices %}
+                            <option value="{{ value }}">{{ display_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="ordnance_condition" class="form-label">Condition</label>
+                    <select name="ordnance_condition" class="form-select" id="ordnance_condition">
+                        <option value="">All Conditions</option>
+                        {% for value, display_name in ordnance_condition_choices %}
+                            <option value="{{ value }}">{{ display_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="danger_score_min" class="form-label">Min Danger Score</label>
+                    <input type="number" name="danger_score__gte" id="danger_score_min" class="form-control" step="0.01" min="0" max="1">
+                </div>
+                <div class="col-md-3">
+                    <label for="danger_score_max" class="form-label">Max Danger Score</label>
+                    <input type="number" name="danger_score__lte" id="danger_score_max" class="form-control" step="0.01" min="0" max="1">
+                </div>
+            </div>
+        </form>
+    </div>
 </div>
 
 <h2>Risk Map Overview</h2>

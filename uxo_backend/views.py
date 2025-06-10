@@ -2,14 +2,25 @@
 
 from django.shortcuts import render, redirect
 from django.contrib.auth import logout
+from uxo_records.models import UXORecord
 
 
 def index(request):
     """
-    Renders the homepage. The template itself handles the logic
-    for displaying content to either authenticated admins or the public.
+    Renders the homepage. If the user is an admin, it also passes
+    context data needed to build the map filtering form.
     """
-    return render(request, "index.html")
+    context = {}
+    if request.user.is_authenticated:
+        # Get the choices from the model fields to populate the filter dropdowns
+        context = {
+            "ordnance_type_choices": UXORecord._meta.get_field("ordnance_type").choices,
+            "ordnance_condition_choices": UXORecord._meta.get_field(
+                "ordnance_condition"
+            ).choices,
+            "burial_status_choices": UXORecord._meta.get_field("burial_status").choices,
+        }
+    return render(request, "index.html", context)
 
 
 ## Logout view

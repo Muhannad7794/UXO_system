@@ -54,5 +54,6 @@ class UXORecordViewSet(viewsets.ModelViewSet):
         specifically for map visualization.
         """
         queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
+        filtered_queryset = self.filter_queryset(queryset)
+        serializer = self.get_serializer(filtered_queryset, many=True)
         return Response(serializer.data)
