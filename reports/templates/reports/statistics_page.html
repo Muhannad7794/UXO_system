@@ -17,7 +17,7 @@
                     <div class="col-md-4">
                         <label for="analysis-type-select" class="form-label fw-bold">1. Select Analysis Type</label>
                         <select name="analysis_type" id="analysis-type-select" class="form-select">
-                            <option value="grouped" selected>Grouped Analysis (e.g., Count by Type)</option>
+                            <option value="grouped" selected>Grouped Analysis</option>
                             <option value="bivariate">Bivariate (Scatter Plot)</option>
                             <option value="regression">Regression Analysis</option>
                             <option value="kmeans">K-Means Clustering</option>
@@ -26,18 +26,42 @@
 
                     <div id="params-container" class="col-md-8">
                         <label class="form-label fw-bold">2. Configure Parameters</label>
+                        
                         <div id="grouped-params" class="analysis-params row g-3">
-                            <div class="col-md-4"><select name="group_by" class="form-select" title="Group By">{% for choice in grouping_choices %}<option value="{{ choice.value }}">{{ choice.name }}</option>{% endfor %}</select></div>
-                            <div class="col-md-4"><select name="aggregate_op" class="form-select" title="Operation">{% for op in agg_op_choices %}<option value="{{ op }}">{{ op|title }}</option>{% endfor %}</select></div>
-                            <div class="col-md-4"><select id="chart-type" class="form-select" title="Chart Type"><option value="bar">Bar Chart</option><option value="pie">Pie Chart</option></select></div>
+                            <div class="col-md-4">
+                                <label class="form-label small ps-1">Group By</label>
+                                <select name="group_by" class="form-select">
+                                    {% for choice in grouping_choices %}
+                                        <option value="{{ choice.value }}">{{ choice.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small ps-1">Operation</label>
+                                <select name="aggregate_op" id="aggregate_op_select" class="form-select">
+                                    {% for op in agg_op_choices %}
+                                        <option value="{{ op }}">{{ op|title }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4" id="aggregate-field-container" style="display: none;">
+                                <label class="form-label small ps-1">On Field</label>
+                                <select name="aggregate_field" class="form-select">
+                                    {% for choice in numeric_choices %}
+                                        <option value="{{ choice.value }}">{{ choice.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
                         </div>
+                        
                         <div id="bivariate-params" class="analysis-params row g-3" style="display: none;">
-                            <div class="col-md-6"><label for="x-axis-select" class="form-label small ps-1">X-Axis</label><select name="x_field" id="x-axis-select" class="form-select">{% for choice in numeric_choices %}<option value="{{ choice.value }}">{{ choice.name }}</option>{% endfor %}</select></div>
-                            <div class="col-md-6"><label for="y-axis-select" class="form-label small ps-1">Y-Axis</label><select name="y_field" id="y-axis-select" class="form-select">{% for choice in numeric_choices %}<option value="{{ choice.value }}">{{ choice.name }}</option>{% endfor %}</select></div>
+                            <div class="col-md-6"><label class="form-label small ps-1">X-Axis</label><select name="x_field" class="form-select">{% for choice in numeric_choices %}<option value="{{ choice.value }}">{{ choice.name }}</option>{% endfor %}</select></div>
+                            <div class="col-md-6"><label class="form-label small ps-1">Y-Axis</label><select name="y_field" class="form-select">{% for choice in numeric_choices %}<option value="{{ choice.value }}">{{ choice.name }}</option>{% endfor %}</select></div>
                         </div>
+
                         <div id="kmeans-params" class="analysis-params row g-3" style="display: none;">
-                            <div class="col-md-6"><label for="kmeans-k" class="form-label small ps-1">Number of Clusters (K)</label><input type="number" name="k" id="kmeans-k" value="3" class="form-control"></div>
-                            <div class="col-md-6"><label for="kmeans-features" class="form-label small ps-1">Features to Cluster On</label><select name="features" id="kmeans-features" class="form-select" multiple size="3">{% for choice in numeric_choices %}<option value="{{ choice.value }}" selected>{{ choice.name }}</option>{% endfor %}</select></div>
+                            <div class="col-md-6"><label class="form-label small ps-1">Number of Clusters (K)</label><input type="number" name="k" value="3" class="form-control" min="2"></div>
+                            <div class="col-md-6"><label class="form-label small ps-1">Features to Cluster On</label><select name="features" class="form-select" multiple size="3">{% for choice in numeric_choices %}<option value="{{ choice.value }}" selected>{{ choice.name }}</option>{% endfor %}</select></div>
                         </div>
                     </div>
                 </div>
@@ -50,17 +74,18 @@
     </div>
 
     <div id="report-results" class="mt-4" style="visibility: hidden;">
-        <div class="card"><div class="card-body">
-            <h5 id="results-title" class="card-title">Report Results</h5>
-            <div id="results-content" class="row" style="display: none;">
-                <div class="col-lg-8"><div id="chart-container" style="min-height: 400px;"><canvas id="stats-chart"></canvas></div></div>
-                <div class="col-lg-4">
-                    <div id="stats-summary-container"></div>
-                    <div id="table-container" class="mt-3" style="max-height: 400px; overflow-y: auto;"></div>
+        <div class="card">
+            <div class="card-body">
+                <h5 id="results-title" class="card-title">Report Results</h5>
+                <div id="results-content" class="row">
+                    <div class="col-lg-8"><div id="chart-container" style="min-height: 400px;"><canvas id="stats-chart"></canvas></div></div>
+                    <div class="col-lg-4">
+                        <div id="stats-summary-container"></div>
+                        <div id="table-container" class="mt-3" style="max-height: 400px; overflow-y: auto;"></div>
+                    </div>
                 </div>
             </div>
-            <div id="results-placeholder" class="card-text text-muted"></div>
-        </div></div>
+        </div>
     </div>
 </div>
 {% endblock %}
