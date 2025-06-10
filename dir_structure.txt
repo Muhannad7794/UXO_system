@@ -63,7 +63,9 @@ UXO_system/
 │   ├── apps.py
 │   ├── models.py
 │   ├── views.py
+│   ├── web_views.py
 │   ├── urls.py
+│   ├── utils.py
 │   ├── tests.py
 │   ├── migrations/
 │   ├── templates/

@@ -1,85 +1,152 @@
 document.addEventListener('DOMContentLoaded', function () {
-    const analysisTypeSelect = document.getElementById('analysis_type');
-    const groupedFields = document.getElementById('grouped-fields');
-    const aggregateFields = document.getElementById('aggregate-fields');
+    // --- DOM Element References ---
     const statsForm = document.getElementById('stats-form');
+    const analysisTypeSelect = document.getElementById('analysis-type-select');
+    const paramContainers = document.querySelectorAll('.analysis-params');
+    const resultsContainer = document.getElementById('report-results');
     const resultsTitle = document.getElementById('results-title');
+    const resultsContent = document.getElementById('results-content');
     const resultsPlaceholder = document.getElementById('results-placeholder');
     const chartContainer = document.getElementById('chart-container');
     const tableContainer = document.getElementById('table-container');
+    const summaryContainer = document.getElementById('stats-summary-container');
     const chartCanvas = document.getElementById('stats-chart');
-    let myChart; // Variable to hold the chart instance
+    let myChart;
 
-    // Function to toggle form fields based on analysis type
+    // --- UI LOGIC: Toggles which parameter fields are visible ---
     function toggleFormFields() {
-        if (analysisTypeSelect.value === 'grouped') {
-            groupedFields.style.display = 'flex';
-            aggregateFields.style.display = 'none';
-        } else {
-            groupedFields.style.display = 'none';
-            aggregateFields.style.display = 'flex';
+        const selectedType = analysisTypeSelect.value;
+        paramContainers.forEach(container => {
+            container.style.display = 'none';
+        });
+        
+        // This correctly finds the right container to show, including for regression
+        const activeContainerId = (selectedType === 'regression' || selectedType === 'bivariate') ? 'bivariate-params' : `${selectedType}-params`;
+        const activeContainer = document.getElementById(activeContainerId);
+        if (activeContainer) {
+            activeContainer.style.display = 'flex';
         }
     }
 
-    // Function to render results as a chart
-    function renderChart(data) {
-        if (myChart) {
-            myChart.destroy(); // Destroy previous chart instance
-        }
+    // --- RENDERING LOGIC ---
+
+    function renderChart(chartType, data) {
+        if (myChart) myChart.destroy();
         chartContainer.style.display = 'block';
-        
-        const labels = data.results.map(item => item.group);
-        const values = data.results.map(item => item.value);
-        
-        myChart = new Chart(chartCanvas, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: data.parameters.group_by || 'Result',
-                    data: values,
-                    backgroundColor: 'rgba(0, 123, 255, 0.5)',
-                    borderColor: 'rgba(0, 123, 255, 1)',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                scales: {
-                    y: { beginAtZero: true }
+        let chartData = {};
+        let options = {};
+        const colors = ['#36A2EB', '#FF6384', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#E7E9ED', '#8D6E63'];
+
+        switch (data.analysis_type) {
+            case 'grouped':
+                options = { indexAxis: 'y', scales: { x: { beginAtZero: true } }, plugins: { legend: { display: false } } };
+                chartData = {
+                    labels: data.results.map(item => item.group),
+                    datasets: [{
+                        label: 'Value',
+                        data: data.results.map(item => item.value),
+                        backgroundColor: colors,
+                    }]
+                };
+                break;
+            case 'bivariate':
+            case 'regression':
+                options = { plugins: { legend: { display: data.analysis_type === 'regression' } } };
+                const scatterData = (data.analysis_type === 'regression') ? data.scatter_data : data.results.map(p => ({x: p[0], y: p[1]}));
+                chartData = {
+                    datasets: [{
+                        type: 'scatter', label: `${data.parameters.y_field} vs ${data.parameters.x_field}`,
+                        data: scatterData, backgroundColor: 'rgba(0, 123, 255, 0.6)'
+                    }]
+                };
+                if (data.analysis_type === 'regression') {
+                    const { slope, intercept } = data.statistics;
+                    const xValues = scatterData.map(p => p[data.parameters.x_field]);
+                    const xMin = Math.min(...xValues);
+                    const xMax = Math.max(...xValues);
+                    chartData.datasets.push({
+                        type: 'line', label: 'Regression Line',
+                        data: [{x: xMin, y: slope * xMin + intercept}, {x: xMax, y: slope * xMax + intercept}],
+                        borderColor: '#F44336', fill: false, tension: 0.1
+                    });
                 }
-            }
-        });
+                break;
+            case 'kmeans':
+                const k = parseInt(data.parameters.k);
+                const featureNames = data.parameters.features.split(',');
+                options = { plugins: { legend: { position: 'bottom' } }, parsing: { xAxisKey: featureNames[0], yAxisKey: featureNames[1] || featureNames[0] } };
+                chartData = { datasets: [] };
+                for (let i = 0; i < k; i++) {
+                    chartData.datasets.push({
+                        type: 'scatter', label: `Cluster ${i}`,
+                        data: data.results.filter(p => p.cluster === i),
+                        backgroundColor: colors[i % colors.length]
+                    });
+                }
+                break;
+        }
+        myChart = new Chart(chartCanvas, { type: chartType, data: chartData, options: options });
     }
     
-    // Function to render results as a simple table
     function renderTable(data) {
-        let tableHTML = '<table class="table table-striped table-bordered">';
-        tableHTML += '<thead><tr><th>Group</th><th>Value</th></tr></thead>';
-        tableHTML += '<tbody>';
-        data.results.forEach(item => {
-            tableHTML += `<tr><td>${item.group}</td><td>${item.value.toLocaleString()}</td></tr>`;
+        if (!data.results || data.results.length === 0) { tableContainer.innerHTML = ''; return; }
+        const dataForTable = data.results || data.scatter_data;
+        if (!dataForTable || dataForTable.length === 0) { tableContainer.innerHTML = ''; return; }
+
+        let headers = Object.keys(dataForTable[0]);
+        let tableHTML = '<table class="table table-sm table-striped table-bordered">';
+        tableHTML += `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>`;
+        dataForTable.forEach(item => {
+            let rowData = Object.values(item).map(v => typeof v === 'number' ? v.toFixed(4) : v);
+            tableHTML += `<tr>${rowData.map(d => `<td>${d}</td>`).join('')}</tr>`;
         });
         tableHTML += '</tbody></table>';
         tableContainer.innerHTML = tableHTML;
     }
 
-    // Event listener for the form submission
+    function renderSummary(data) {
+        summaryContainer.innerHTML = '';
+        if (data.analysis_type === 'regression' && data.statistics) {
+            const stats = data.statistics;
+            summaryContainer.innerHTML = `<h5>Regression Statistics</h5><ul class="list-group">
+                <li class="list-group-item d-flex justify-content-between align-items-center">R-squared: <strong>${stats.r_squared.toFixed(4)}</strong></li>
+                <li class="list-group-item d-flex justify-content-between align-items-center">Slope: <strong>${stats.slope.toFixed(4)}</strong></li>
+                <li class="list-group-item d-flex justify-content-between align-items-center">Intercept: <strong>${stats.intercept.toFixed(4)}</strong></li>
+            </ul>`;
+        }
+    }
+
+    // --- MAIN EVENT LISTENER FOR FORM SUBMISSION ---
     statsForm.addEventListener('submit', function (e) {
         e.preventDefault();
+        resultsContainer.style.visibility = 'visible';
         resultsPlaceholder.style.display = 'none';
-        tableContainer.innerHTML = '<h6>Loading...</h6>';
+        resultsContent.style.display = 'none';
+        tableContainer.innerHTML = '<h6><div class="spinner-border spinner-border-sm" role="status"><span class="visually-hidden">Loading...</span></div> Loading Report...</h6>';
+        summaryContainer.innerHTML = '';
+        if (myChart) myChart.destroy();
 
+        const selectedAnalysis = analysisTypeSelect.value;
+        let params = new URLSearchParams({ analysis_type: selectedAnalysis });
 
-        const formData = new FormData(statsForm);
-        // We need to add the 'aggregate_field' manually for some operations
-        if (formData.get('analysis_type') === 'grouped' && formData.get('aggregate_op') !== 'count') {
-            formData.append('aggregate_field', 'danger_score');
+        // This corrected logic only gets parameters from the VISIBLE form section
+        const activeParamsDiv = document.querySelector('.analysis-params:not([style*="display: none"])');
+        if (activeParamsDiv) {
+            activeParamsDiv.querySelectorAll('input, select').forEach(input => {
+                if (input.name && input.value) {
+                    if (input.type === 'select-multiple') {
+                        for (const option of input.selectedOptions) { params.append(input.name, option.value); }
+                    } else {
+                        params.append(input.name, input.value);
+                    }
+                }
+            });
         }
-        if (formData.get('analysis_type') === 'aggregate') {
-            formData.append('numeric_field', 'danger_score');
+        
+        if (selectedAnalysis === 'grouped' && params.get('aggregate_op') !== 'count') {
+            params.append('aggregate_field', 'danger_score');
         }
 
-        const params = new URLSearchParams(formData);
         const apiUrl = `/api/v1/reports/statistics/?${params.toString()}`;
         
         fetch(apiUrl)
@@ -91,23 +158,23 @@ document.addEventListener('DOMContentLoaded', function () {
                     return;
                 }
                 
-                resultsTitle.innerText = `Report Results: ${data.parameters.group_by || 'Overall ' + data.parameters.operation}`;
+                resultsContent.style.display = 'flex';
+                // FIX: Corrected how the title is generated
+                resultsTitle.innerText = `Results for: ${selectedAnalysis.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} Analysis`;
                 
-                if (data.analysis_type === 'grouped') {
-                    renderChart(data);
-                    renderTable(data);
-                } else {
-                    // Display single aggregate value
-                    chartContainer.style.display = 'none';
-                    tableContainer.innerHTML = `<div class="alert alert-info fs-4"><strong>Result:</strong> ${data.result.toLocaleString()}</div>`;
-                }
+                let chartType = document.getElementById('chart-type').value;
+                if (['bivariate', 'regression', 'kmeans'].includes(data.analysis_type)) { chartType = 'scatter'; }
+
+                renderChart(chartType, data);
+                renderTable(data);
+                renderSummary(data);
             })
             .catch(error => {
                 tableContainer.innerHTML = `<div class="alert alert-danger">An error occurred: ${error}</div>`;
             });
     });
 
-    // Initial setup
+    // --- Initial page setup ---
     analysisTypeSelect.addEventListener('change', toggleFormFields);
-    toggleFormFields(); // Call it once on page load
+    toggleFormFields();
 });

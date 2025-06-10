@@ -17,6 +17,6 @@ api_urlpatterns = [
 ]
 
 web_urlpatterns = [
-    path("graph_statistics/", StatisticsPageView.as_view(), name="statistics-page"),
+    path("ui_statistics/", StatisticsPageView.as_view(), name="statistics-page"),
 ]
 

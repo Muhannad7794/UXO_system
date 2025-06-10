@@ -1,25 +1,20 @@
-# reports/views/statistics_views.py
+import numpy as np
+import pandas as pd
+from sklearn.linear_model import LinearRegression
+from sklearn.cluster import KMeans
 
 from django.db.models import Avg, Count, Max, Min, Sum
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
-from uxo_records.models import UXORecord, Region  # Import Region as well
-from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 
-# A dictionary to map string parameters to Django's aggregation functions
-AGGREGATION_MAP = {
-    "avg": Avg,
-    "max": Max,
-    "min": Min,
-    "sum": Sum,
-    "count": Count,
-}
+from reports.utils import get_annotated_uxo_queryset
+from uxo_records.models import UXORecord  # Ensure UXORecord is imported if not already
 
-# --- UPDATED WHITELISTS FOR THE NEW DATA MODEL ---
+# --- CONFIGURATION ---
 
-# Define which fields are valid for grouping.
-# Using 'region__name' allows grouping by the name of the region, which is more useful.
+AGGREGATION_MAP = {"avg": Avg, "max": Max, "min": Min, "sum": Sum, "count": Count}
 VALID_GROUPING_FIELDS = [
     "region__name",
     "ordnance_type",
@@ -28,210 +23,277 @@ VALID_GROUPING_FIELDS = [
     "proximity_to_civilians",
     "burial_status",
 ]
-
-# Define which fields are valid for numeric aggregation.
-# In our new model, 'danger_score' is the only relevant numeric field.
 VALID_NUMERIC_FIELDS = [
     "danger_score",
+    "ordnance_type_numeric",
+    "ordnance_condition_numeric",
+    "burial_status_numeric",
+    "proximity_to_civilians_numeric",
+    "is_loaded_numeric",
+    "location__x",
+    "location__y",
 ]
 
 
 @extend_schema(
-    summary="Generate UXO Statistics",
+    summary="Generate Advanced UXO Statistics",
     description="""
-A flexible endpoint to generate various statistics about UXO records based on the new data model.
-Supports two main analysis types: 'aggregate' and 'grouped'.
-
-**1. Aggregate Analysis (`analysis_type=aggregate`):**
-Performs a single aggregation over the entire dataset.
-- `numeric_field`: The field to aggregate (must be 'danger_score').
-- `operation`: The function to apply ('avg', 'max', 'min', 'sum', 'count').
-
-*Example: `/api/v1/reports/statistics/?analysis_type=aggregate&numeric_field=danger_score&operation=avg`*
-
-**2. Grouped Analysis (`analysis_type=grouped`):**
-Groups data by a category and performs an aggregation on each group.
-- `group_by`: The field to group results by (e.g., 'region__name', 'ordnance_type').
-- `aggregate_op` (optional): The function for aggregation ('avg', 'sum', 'max', 'min'). Defaults to 'count'.
-- `aggregate_field` (optional): The numeric field for aggregation (must be 'danger_score'). Required if `aggregate_op` is not 'count'.
-
-*Example 1 (Grouped Count): `/api/v1/reports/statistics/?analysis_type=grouped&group_by=ordnance_type`*
-*Example 2 (Grouped Average): `/api/v1/reports/statistics/?analysis_type=grouped&group_by=region__name&aggregate_op=avg&aggregate_field=danger_score`*
+A flexible endpoint to generate various statistics. Supports `aggregate`, `grouped`, `bivariate`, `regression`, and `kmeans` analysis types.
     """,
     parameters=[
         OpenApiParameter(
             name="analysis_type",
-            description="Type of analysis: 'aggregate' or 'grouped'",
             required=True,
             type=str,
-            examples=[
-                OpenApiExample(
-                    name="Aggregate Analysis",
-                    value="aggregate",
-                    summary="Overall Stats",
-                ),
-                OpenApiExample(
-                    name="Grouped Analysis", value="grouped", summary="Grouped Stats"
-                ),
-            ],
-        ),
-        OpenApiParameter(
-            name="group_by",
-            description=f"Field to group by (for 'grouped' analysis). Valid options: {', '.join(VALID_GROUPING_FIELDS)}",
-            type=str,
+            enum=["aggregate", "grouped", "bivariate", "regression", "kmeans"],
         ),
         OpenApiParameter(
             name="numeric_field",
-            description="Field for calculation (for 'aggregate' analysis). Valid options: 'danger_score'",
             type=str,
+            description="Field for 'aggregate' analysis (e.g., 'danger_score').",
         ),
         OpenApiParameter(
             name="operation",
-            description="Aggregation function for 'aggregate' analysis (avg, max, min, sum, count).",
             type=str,
+            description="Operation for 'aggregate' analysis (e.g., 'avg').",
         ),
         OpenApiParameter(
-            name="aggregate_field",
-            description="Field for calculation within groups (for 'grouped' analysis). Valid options: 'danger_score'",
+            name="group_by",
             type=str,
+            description=f"Field to group by for 'grouped' analysis.",
         ),
         OpenApiParameter(
             name="aggregate_op",
-            description="Aggregation function for groups (avg, max, min, sum). Defaults to 'count'.",
             type=str,
+            description="Aggregation function for groups. Defaults to 'count'.",
+        ),
+        OpenApiParameter(
+            name="aggregate_field",
+            type=str,
+            description="Field for aggregation within groups.",
+        ),
+        OpenApiParameter(
+            name="x_field",
+            type=str,
+            description=f"Field for X-axis (bivariate/regression).",
+        ),
+        OpenApiParameter(
+            name="y_field",
+            type=str,
+            description=f"Field for Y-axis (bivariate/regression).",
+        ),
+        OpenApiParameter(
+            name="k", type=int, description="Number of clusters for K-Means analysis."
+        ),
+        OpenApiParameter(
+            name="features",
+            type=str,
+            description="Comma-separated numeric fields for K-Means clustering.",
         ),
     ],
     tags=["Reports & Analytics"],
 )
 class StatisticsView(APIView):
-    """
-    A consolidated view to handle various statistical aggregations on the new data model.
-    """
+    """A consolidated view to handle various statistical analyses using an annotated queryset."""
 
     permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self):
+        """The base for all queries is now the annotated queryset."""
+        return get_annotated_uxo_queryset()
 
     def get(self, request, *args, **kwargs):
         analysis_type = request.query_params.get("analysis_type")
 
+        # --- Dispatcher now includes all 5 analysis types ---
         if analysis_type == "aggregate":
             return self.perform_aggregate_analysis(request)
         elif analysis_type == "grouped":
             return self.perform_grouped_analysis(request)
+        elif analysis_type == "bivariate":
+            return self.perform_bivariate_analysis(request)
+        elif analysis_type == "regression":
+            return self.perform_regression_analysis(request)
+        elif analysis_type == "kmeans":
+            return self.perform_kmeans_analysis(request)
         else:
             return Response(
-                {
-                    "error": "Invalid or missing 'analysis_type' parameter. Must be 'aggregate' or 'grouped'."
-                },
-                status=400,
+                {"error": "Invalid or missing 'analysis_type' parameter."}, status=400
             )
 
+    def _validate_params(self, params, required_fields, valid_fields_map={}):
+        """Helper function to validate query parameters."""
+        for field in required_fields:
+            if not params.get(field):
+                return f"'{field}' is required for this analysis type."
+
+        for field, valid_values in valid_fields_map.items():
+            param_value = params.get(field)
+            if param_value and param_value not in valid_values:
+                return f"Unsupported value for '{field}'. Valid options are: {', '.join(valid_values)}"
+        return None
+
+    # --- Aggregate Analysis (Restored) ---
     def perform_aggregate_analysis(self, request):
-        """
-        Handles overall aggregation logic.
-        """
-        field = request.query_params.get("numeric_field")
-        operation_str = request.query_params.get("operation")
+        params = request.query_params
+        error = self._validate_params(
+            params,
+            ["numeric_field", "operation"],
+            {"numeric_field": VALID_NUMERIC_FIELDS},
+        )
+        if error:
+            return Response({"error": error}, status=400)
 
-        if not field or not operation_str:
+        field, op_str = params.get("numeric_field"), params.get("operation")
+        op_func = AGGREGATION_MAP.get(op_str)
+        if not op_func:
             return Response(
-                {
-                    "error": "'numeric_field' and 'operation' are required for 'aggregate' analysis."
-                },
-                status=400,
+                {"error": f"Unsupported operation: '{op_str}'."}, status=400
             )
 
-        if field not in VALID_NUMERIC_FIELDS:
-            return Response(
-                {
-                    "error": f"Aggregation on field '{field}' is not supported. Valid field is 'danger_score'."
-                },
-                status=400,
-            )
-
-        operation_func = AGGREGATION_MAP.get(operation_str)
-        if not operation_func:
-            return Response(
-                {"error": f"Unsupported operation: '{operation_str}'."}, status=400
-            )
-
-        aggregation_arg = "id" if operation_str == "count" else field
-        result = UXORecord.objects.aggregate(result=operation_func(aggregation_arg))
-
+        queryset = self.get_queryset()
+        agg_arg = "id" if op_str == "count" else field
+        result = queryset.aggregate(result=op_func(agg_arg))
         return Response(
             {
                 "analysis_type": "aggregate",
-                "parameters": {"numeric_field": field, "operation": operation_str},
+                "parameters": params,
                 "result": result.get("result"),
             }
         )
 
+    # --- Grouped Analysis (Unchanged) ---
     def perform_grouped_analysis(self, request):
-        """
-        Handles grouped aggregation logic.
-        """
-        group_by = request.query_params.get("group_by")
-        aggregate_op_str = request.query_params.get(
-            "aggregate_op", "count"
-        )  # Default to 'count'
-        aggregate_field = request.query_params.get("aggregate_field")
-
-        if not group_by:
-            return Response(
-                {"error": "'group_by' is required for 'grouped' analysis."}, status=400
-            )
-
-        if group_by not in VALID_GROUPING_FIELDS:
-            return Response(
-                {"error": f"Grouping by '{group_by}' is not supported."}, status=400
-            )
-
-        if aggregate_op_str != "count" and not aggregate_field:
+        params = request.query_params
+        error = self._validate_params(
+            params, ["group_by"], {"group_by": VALID_GROUPING_FIELDS}
+        )
+        if error:
+            return Response({"error": error}, status=400)
+        group_by = params.get("group_by")
+        agg_op_str = params.get("aggregate_op", "count")
+        agg_field = params.get("aggregate_field")
+        if agg_op_str != "count" and not agg_field:
             return Response(
                 {
-                    "error": f"'aggregate_field' is required when 'aggregate_op' is '{aggregate_op_str}'."
+                    "error": f"'aggregate_field' is required when 'aggregate_op' is '{agg_op_str}'."
                 },
                 status=400,
             )
-
-        if aggregate_field and aggregate_field not in VALID_NUMERIC_FIELDS:
+        if agg_field and agg_field not in VALID_NUMERIC_FIELDS:
             return Response(
-                {
-                    "error": f"Aggregation on field '{aggregate_field}' is not supported. Valid field is 'danger_score'."
-                },
+                {"error": f"Aggregation on field '{agg_field}' is not supported."},
                 status=400,
             )
-
-        op_func = AGGREGATION_MAP.get(aggregate_op_str)
+        op_func = AGGREGATION_MAP.get(agg_op_str)
         if not op_func:
             return Response(
-                {"error": f"Unsupported operation: '{aggregate_op_str}'."}, status=400
+                {"error": f"Unsupported operation: '{agg_op_str}'."}, status=400
             )
-
-        queryset = UXORecord.objects.values(group_by)
-
-        if aggregate_op_str == "count":
-            annotation = queryset.annotate(result=Count("id")).order_by("-result")
-        else:
-            annotation = queryset.annotate(result=op_func(aggregate_field)).order_by(
-                "-result"
-            )
-
-        # To improve readability of the output, we can rename the grouping key
-        # from e.g. 'region__name' to 'group' in the final list.
-        results_list = []
-        for item in annotation:
-            results_list.append(
-                {"group": item.pop(group_by), "value": item.pop("result")}
-            )
-
-        return Response(
-            {
-                "analysis_type": "grouped",
-                "parameters": {
-                    "group_by": group_by,
-                    "aggregate_op": aggregate_op_str,
-                    "aggregate_field": aggregate_field,
-                },
-                "results": results_list,
-            }
+        queryset = self.get_queryset().values(group_by)
+        annotation_arg = "id" if agg_op_str == "count" else agg_field
+        annotation = queryset.annotate(result=op_func(annotation_arg)).order_by(
+            "-result"
         )
+        results_list = [
+            {"group": item[group_by], "value": item["result"]} for item in annotation
+        ]
+        return Response(
+            {"analysis_type": "grouped", "parameters": params, "results": results_list}
+        )
+
+    # --- Bivariate Analysis (Unchanged) ---
+    def perform_bivariate_analysis(self, request):
+        params = request.query_params
+        error = self._validate_params(
+            params,
+            ["x_field", "y_field"],
+            {"x_field": VALID_NUMERIC_FIELDS, "y_field": VALID_NUMERIC_FIELDS},
+        )
+        if error:
+            return Response({"error": error}, status=400)
+        x_field, y_field = params.get("x_field"), params.get("y_field")
+        data = self.get_queryset().values_list(x_field, y_field)
+        return Response(
+            {"analysis_type": "bivariate", "parameters": params, "results": list(data)}
+        )
+
+    # --- Regression Analysis (Unchanged) ---
+    def perform_regression_analysis(self, request):
+        params = request.query_params
+        error = self._validate_params(
+            params,
+            ["x_field", "y_field"],
+            {"x_field": VALID_NUMERIC_FIELDS, "y_field": VALID_NUMERIC_FIELDS},
+        )
+        if error:
+            return Response({"error": error}, status=400)
+        x_field, y_field = params.get("x_field"), params.get("y_field")
+        queryset = self.get_queryset().values(x_field, y_field)
+        df = pd.DataFrame.from_records(queryset).dropna()
+        if len(df) < 2:
+            return Response(
+                {"error": "Not enough data points for regression analysis."}, status=400
+            )
+        X = df[[x_field]].values
+        y = df[y_field].values
+        model = LinearRegression()
+        model.fit(X, y)
+        response_data = {
+            "analysis_type": "regression",
+            "parameters": params,
+            "statistics": {
+                "r_squared": model.score(X, y),
+                "slope": model.coef_[0],
+                "intercept": model.intercept_,
+                "variance": np.var(y),
+                "mean_of_dependent_variable": np.mean(y),
+            },
+            "scatter_data": df.to_dict("records"),
+        }
+        return Response(response_data)
+
+    # --- K-Means Clustering (The only new addition) ---
+    def perform_kmeans_analysis(self, request):
+        params = request.query_params
+        try:
+            k = int(params.get("k"))
+            features_str = params.get("features")
+            if not k or not features_str:
+                raise ValueError()
+            features = features_str.split(",")
+        except (ValueError, TypeError):
+            return Response(
+                {
+                    "error": "Invalid or missing 'k' (integer) and 'features' (comma-separated string) parameters are required."
+                },
+                status=400,
+            )
+        for feature in features:
+            if feature not in VALID_NUMERIC_FIELDS:
+                return Response(
+                    {
+                        "error": f"Invalid feature '{feature}'. Please use fields from the valid numeric fields list."
+                    },
+                    status=400,
+                )
+        queryset = self.get_queryset().values(
+            *features, "id"
+        )  # Also get ID for reference
+        df = pd.DataFrame.from_records(queryset).dropna()
+        if len(df) < k:
+            return Response(
+                {
+                    "error": f"Cannot create {k} clusters with only {len(df)} data points."
+                },
+                status=400,
+            )
+        kmeans = KMeans(n_clusters=k, random_state=42, n_init="auto")
+        cluster_data = df[features]
+        df["cluster"] = kmeans.fit_predict(cluster_data)
+        response_data = {
+            "analysis_type": "kmeans",
+            "parameters": params,
+            "results": df.to_dict("records"),
+        }
+        return Response(response_data)
