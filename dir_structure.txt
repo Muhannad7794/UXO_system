@@ -17,7 +17,7 @@ UXO_system/
 │   ├── urls.py
 │   ├── asgi.py
 │   └── wsgi.py
-│   └── views.py
+│   └── views.py                     # To serve the rendering views on the UI
 │
 ├── danger_score/                    # Risk score calculation logic
 │   ├── __init__.py
@@ -50,6 +50,7 @@ UXO_system/
 │   ├── signals.py                  # Triggers danger score calculation upon adding new record(s)
 │   ├── urls.py
 │   └── tests.py
+│
 ├── reports/
 │   ├── views/
 │   │   ├── statistics_views.py
@@ -58,28 +59,31 @@ UXO_system/
 │   │       ├── commands/
 │   │              ├── __init__.py
 │   │              ├──genrate_hotzones.py
+│   ├── templates/
+│   │   └── reports/
+│   │       └──statistics_page.html    
+│   ├── static/
+│   │   └── reports/
+│   │       └── js/
+│   │           ├──dashboard.js
+│   │           └──statistics.js
 │   ├── __init__.py
 │   ├── admin.py
 │   ├── apps.py
-│   ├── models.py
+│   ├── models.py                   # contains the HotZone model
 │   ├── views.py
-│   ├── web_views.py
+│   ├── web_views.py                # contains the view to serve the StatisticsPageView view from views/
 │   ├── urls.py
-│   ├── utils.py
+│   ├── utils.py                    # contains the data annotation utility to create temporary "virtual" numeric fields at query time
 │   ├── tests.py
 │   ├── migrations/
-│   ├── templates/
-│   │   └── reports/
-│   ├── static/
-│       └── reports/
-│           ├── css/
-│           └── js/
-│               └── dashboard.js
+│
 ├── citizens_reports/               # Civilian-submitted UXO reports
 │   ├── static/
 │   │   └── citizens_reports/
 │   │        ├── js/
 │   │             ├── report_form.js
+│   │             └──review_list.js
 │   ├── templates/
 │   │   └── citizens_reports/
 │   │       ├── partials/
@@ -97,6 +101,7 @@ UXO_system/
 │   ├── serializers.py
 │   ├── urls.py
 │   └── tests.py
+│
 └── templates/   
     ├── base.html
     ├──index.html
