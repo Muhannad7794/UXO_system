@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">{{ title }}</h1>
+
+    <div class="card">
+        <div class="card-header">
+            <h4>Upload UXO Records CSV</h4>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info">
+                <strong>Instructions:</strong> Please upload a CSV file with the following columns:
+                <code>latitude</code>, <code>longitude</code>, <code>region_name</code>, <code>ordnance_type</code>, <code>ordnance_condition</code>, <code>is_loaded</code>, <code>proximity_to_civilians</code>, <code>burial_status</code>.
+            </div>
+
+            <form id="upload-form" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label for="csv-file-input" class="form-label">Select CSV File</label>
+                    <input class="form-control" type="file" id="csv-file-input" name="file" accept=".csv" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Upload and Process</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="results-container" class="mt-4" style="display: none;">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Processing Results</h5>
+                <div id="results-content"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('upload-form');
+        const fileInput = document.getElementById('csv-file-input');
+        const resultsContainer = document.getElementById('results-container');
+        const resultsContent = document.getElementById('results-content');
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            resultsContainer.style.display = 'block';
+            resultsContent.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div> Processing file... Please wait.';
+
+            // Get CSRF token from cookie
+            const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken=')).split('=')[1];
+
+            try {
+                const response = await fetch('/api/v1/records/bulk-upload-csv/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultsContent.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+                } else {
+                    let errorHtml = `<div class="alert alert-danger">${data.error || data.message}</div>`;
+                    if (data.errors) {
+                        errorHtml += '<h6>Details:</h6><ul class="list-group">';
+                        data.errors.forEach(err => {
+                            errorHtml += `<li class="list-group-item list-group-item-danger">${err}</li>`;
+                        });
+                        errorHtml += '</ul>';
+                    }
+                    resultsContent.innerHTML = errorHtml;
+                }
+
+            } catch (error) {
+                resultsContent.innerHTML = `<div class="alert alert-danger">An unexpected error occurred: ${error}</div>`;
+            }
+        });
+    });
+</script>
+{% endblock %}

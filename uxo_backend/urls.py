@@ -11,6 +11,7 @@ from drf_spectacular.views import (
 )
 from django.contrib.auth import views as auth_views
 from . import views
+from .views import DataImportView
 
 # Import the specific url lists from your apps
 from reports.urls import api_urlpatterns as reports_api_urls
@@ -30,6 +31,7 @@ urlpatterns = [
     path("", views.index, name="index"),
     path("", include(citizens_web_urls)),
     path("reports/", include(reports_web_urls)),  # Will create /reports/statistics/
+    path("data-import/", DataImportView.as_view(), name="data-import-page"),
     # --- API ENDPOINTS ---
     path("api/v1/records/", include("uxo_records.urls")),
     path(

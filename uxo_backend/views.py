@@ -3,6 +3,9 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import logout
 from uxo_records.models import UXORecord
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views.generic import TemplateView
+from django.core.exceptions import PermissionDenied
 
 
 def index(request):
@@ -34,3 +37,16 @@ def logout_view(request):
     """
     logout(request)
     return redirect("index")
+
+
+class DataImportView(LoginRequiredMixin, TemplateView):
+    template_name = "data_import.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Check if the user is an admin/staff to be extra safe
+        if not self.request.user.is_staff:
+            # You might want to handle this more gracefully, e.g., redirecting
+            raise PermissionDenied("You do not have access to this page.")
+        context["title"] = "Bulk Data Import"
+        return context
