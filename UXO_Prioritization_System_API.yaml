@@ -80,6 +80,30 @@ paths:
         '204':
           description: No response body
   /api/v1/citizen-reports/review/{id}/verify/:
+    get:
+      operationId: citizen_reports_review_verify_retrieve
+      description: |-
+        Admin-only view to verify a report.
+        - GET: Renders a form with fields from the new ReportVerificationSerializer.
+        - POST: Creates a new UXORecord using the report's location and the admin's data.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - citizen-reports
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportVerification'
+          description: ''
     post:
       operationId: citizen_reports_review_verify_create
       description: Fill out the form to provide the necessary details. Submitting
@@ -154,12 +178,14 @@ paths:
       - in: query
         name: burial_status
         schema:
-          type: string
-          enum:
-          - BUR
-          - CON
-          - EXP
-          - PAR
+          type: array
+          items:
+            type: string
+            enum:
+            - BUR
+            - CON
+            - EXP
+            - PAR
         description: |-
           How exposed or buried is the ordnance?
 
@@ -167,20 +193,18 @@ paths:
           * `PAR` - Partially Exposed
           * `CON` - Concealed (by vegetation/debris)
           * `BUR` - Buried
+        explode: true
+        style: form
       - in: query
         name: danger_score_max
         schema:
           type: number
-          format: double
-          nullable: true
-        description: Calculated danger score for this specific UXO incident.
+          format: float
       - in: query
         name: danger_score_min
         schema:
           type: number
-          format: double
-          nullable: true
-        description: Calculated danger score for this specific UXO incident.
+          format: float
       - in: query
         name: is_loaded
         schema:
@@ -194,30 +218,36 @@ paths:
       - in: query
         name: ordnance_condition
         schema:
-          type: string
-          enum:
-          - COR
-          - DMG
-          - INT
-          - LEK
+          type: array
+          items:
+            type: string
+            enum:
+            - COR
+            - DMG
+            - INT
+            - LEK
         description: |-
           * `INT` - Intact
           * `COR` - Corroded
           * `DMG` - Damaged/Deformed
           * `LEK` - Leaking/Exuding
+        explode: true
+        style: form
       - in: query
         name: ordnance_type
         schema:
-          type: string
-          enum:
-          - ART
-          - BOM
-          - IED
-          - MIN
-          - MOR
-          - OTH
-          - ROC
-          - SUB
+          type: array
+          items:
+            type: string
+            enum:
+            - ART
+            - BOM
+            - IED
+            - MIN
+            - MOR
+            - OTH
+            - ROC
+            - SUB
         description: |-
           * `ART` - Artillery Projectile
           * `MOR` - Mortar Bomb
@@ -227,6 +257,8 @@ paths:
           * `SUB` - Submunition
           * `IED` - Improvised Explosive Device
           * `OTH` - Other
+        explode: true
+        style: form
       - name: page
         required: false
         in: query
@@ -242,17 +274,21 @@ paths:
       - in: query
         name: proximity_to_civilians
         schema:
-          type: string
-          enum:
-          - IMM
-          - NEA
-          - REM
+          type: array
+          items:
+            type: string
+            enum:
+            - IMM
+            - NEA
+            - REM
         description: |-
           General proximity to civilians or critical infrastructure.
 
           * `IMM` - Immediate (0-100m to civilians/infrastructure)
           * `NEA` - Near (101-500m)
           * `REM` - Remote (>500m)
+        explode: true
+        style: form
       - in: query
         name: region
         schema:
@@ -420,6 +456,24 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/v1/records/all_records/:
+    get:
+      operationId: records_all_records_retrieve
+      description: |-
+        Custom endpoint to return all records without pagination,
+        specifically for map visualization.
+      tags:
+      - records
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UXORecord'
+          description: ''
   /api/v1/reports/geospatial/heatmap/:
     get:
       operationId: reports_geospatial_heatmap_retrieve
@@ -494,67 +548,67 @@ paths:
   /api/v1/reports/statistics/:
     get:
       operationId: reports_statistics_retrieve
-      description: "\nA flexible endpoint to generate various statistics about UXO\
-        \ records based on the new data model.\nSupports two main analysis types:\
-        \ 'aggregate' and 'grouped'.\n\n**1. Aggregate Analysis (`analysis_type=aggregate`):**\n\
-        Performs a single aggregation over the entire dataset.\n- `numeric_field`:\
-        \ The field to aggregate (must be 'danger_score').\n- `operation`: The function\
-        \ to apply ('avg', 'max', 'min', 'sum', 'count').\n\n*Example: `/api/v1/reports/statistics/?analysis_type=aggregate&numeric_field=danger_score&operation=avg`*\n\
-        \n**2. Grouped Analysis (`analysis_type=grouped`):**\nGroups data by a category\
-        \ and performs an aggregation on each group.\n- `group_by`: The field to group\
-        \ results by (e.g., 'region__name', 'ordnance_type').\n- `aggregate_op` (optional):\
-        \ The function for aggregation ('avg', 'sum', 'max', 'min'). Defaults to 'count'.\n\
-        - `aggregate_field` (optional): The numeric field for aggregation (must be\
-        \ 'danger_score'). Required if `aggregate_op` is not 'count'.\n\n*Example\
-        \ 1 (Grouped Count): `/api/v1/reports/statistics/?analysis_type=grouped&group_by=ordnance_type`*\n\
-        *Example 2 (Grouped Average): `/api/v1/reports/statistics/?analysis_type=grouped&group_by=region__name&aggregate_op=avg&aggregate_field=danger_score`*\n\
-        \    "
-      summary: Generate UXO Statistics
+      description: "\nA flexible endpoint to generate various statistics. Supports\
+        \ `aggregate`, `grouped`, `bivariate`, `regression`, and `kmeans` analysis\
+        \ types.\n    "
+      summary: Generate Advanced UXO Statistics
       parameters:
       - in: query
         name: aggregate_field
         schema:
           type: string
-        description: 'Field for calculation within groups (for ''grouped'' analysis).
-          Valid options: ''danger_score'''
+        description: Field for aggregation within groups.
       - in: query
         name: aggregate_op
         schema:
           type: string
-        description: Aggregation function for groups (avg, max, min, sum). Defaults
-          to 'count'.
+        description: Aggregation function for groups. Defaults to 'count'.
       - in: query
         name: analysis_type
         schema:
           type: string
-        description: 'Type of analysis: ''aggregate'' or ''grouped'''
+          enum:
+          - aggregate
+          - bivariate
+          - grouped
+          - kmeans
+          - regression
         required: true
-        examples:
-          AggregateAnalysis:
-            value: aggregate
-            summary: Overall Stats
-          GroupedAnalysis:
-            value: grouped
-            summary: Grouped Stats
+      - in: query
+        name: features
+        schema:
+          type: string
+        description: Comma-separated numeric fields for K-Means clustering.
       - in: query
         name: group_by
         schema:
           type: string
-        description: 'Field to group by (for ''grouped'' analysis). Valid options:
-          region__name, ordnance_type, ordnance_condition, is_loaded, proximity_to_civilians,
-          burial_status'
+        description: Field to group by for 'grouped' analysis.
+      - in: query
+        name: k
+        schema:
+          type: integer
+        description: Number of clusters for K-Means analysis.
       - in: query
         name: numeric_field
         schema:
           type: string
-        description: 'Field for calculation (for ''aggregate'' analysis). Valid options:
-          ''danger_score'''
+        description: Field for 'aggregate' analysis (e.g., 'danger_score').
       - in: query
         name: operation
         schema:
           type: string
-        description: Aggregation function for 'aggregate' analysis (avg, max, min,
-          sum, count).
+        description: Operation for 'aggregate' analysis (e.g., 'avg').
+      - in: query
+        name: x_field
+        schema:
+          type: string
+        description: Field for X-axis (bivariate/regression).
+      - in: query
+        name: y_field
+        schema:
+          type: string
+        description: Field for Y-axis (bivariate/regression).
       tags:
       - Reports & Analytics
       security:
@@ -971,9 +1025,8 @@ components:
     ReportVerification:
       type: object
       description: |-
-        Defines the data an admin must provide to create a UXORecord from a report.
-        The fields now match the current UXORecord model and use ChoiceFields
-        to render as dropdowns in the DRF browsable API.
+        This serializer defines the fields for the admin verification form.
+        It now correctly pulls choices directly from the UXORecord model's fields.
       properties:
         ordnance_type:
           $ref: '#/components/schemas/OrdnanceTypeEnum'
@@ -981,8 +1034,7 @@ components:
           $ref: '#/components/schemas/OrdnanceConditionEnum'
         is_loaded:
           type: boolean
-          default: true
-          description: Is the ordnance considered to be loaded and fuzed?
+          title: Is the ordnance considered to be loaded and fuzed?
         proximity_to_civilians:
           $ref: '#/components/schemas/ProximityToCiviliansEnum'
         burial_status:
@@ -995,9 +1047,8 @@ components:
     ReportVerificationRequest:
       type: object
       description: |-
-        Defines the data an admin must provide to create a UXORecord from a report.
-        The fields now match the current UXORecord model and use ChoiceFields
-        to render as dropdowns in the DRF browsable API.
+        This serializer defines the fields for the admin verification form.
+        It now correctly pulls choices directly from the UXORecord model's fields.
       properties:
         ordnance_type:
           $ref: '#/components/schemas/OrdnanceTypeEnum'
@@ -1005,8 +1056,7 @@ components:
           $ref: '#/components/schemas/OrdnanceConditionEnum'
         is_loaded:
           type: boolean
-          default: true
-          description: Is the ordnance considered to be loaded and fuzed?
+          title: Is the ordnance considered to be loaded and fuzed?
         proximity_to_civilians:
           $ref: '#/components/schemas/ProximityToCiviliansEnum'
         burial_status:
