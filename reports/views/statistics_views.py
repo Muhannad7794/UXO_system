@@ -136,6 +136,16 @@ class StatisticsView(APIView):
             y_field = request.query_params.get("y_field")
             label_maps["x_axis"] = _get_label_maps(x_field)
             label_maps["y_axis"] = _get_label_maps(y_field)
+        elif analysis_type == "kmeans":
+            # --- NEW: Add logic to get maps for K-Means features ---
+            features_str = request.query_params.get("features", "")
+            features = features_str.split(",")
+            for feature in features:
+                # We will add a map for each feature that has one
+                feature_map = _get_label_maps(feature)
+                if feature_map:
+                    label_maps[feature] = feature_map
+            # --- END NEW ---
 
         # 2. Dispatch the request to the correct analysis method and capture the initial response.
         if analysis_type == "aggregate":
@@ -156,7 +166,6 @@ class StatisticsView(APIView):
         # 3. If the analysis was successful, inject the generated label maps
         #    into the response data before returning it.
         if response.status_code == 200 and hasattr(response, "data"):
-            # Only add the label_maps key if we actually generated any non-empty maps
             non_empty_maps = {k: v for k, v in label_maps.items() if v}
             if non_empty_maps:
                 response.data["label_maps"] = non_empty_maps

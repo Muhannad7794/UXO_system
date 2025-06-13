@@ -77,6 +77,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 {
                     const xMap = labelMaps.x_axis || {};
                     const yMap = labelMaps.y_axis || {};
+
+                    // --- FIX FOR VALUE '1' ON CHARTS ---
+                    // This robust callback now checks for the ".0" format explicitly.
+                    const robustTickCallback = (map) => (value) => {
+                        const valueStr = String(value);
+                        const valueAsFloat = parseFloat(valueStr);
+                        return map[valueAsFloat.toFixed(1)] || map[valueStr] || value;
+                    };
+
                     options = {
                         plugins: {
                             legend: {
@@ -86,16 +95,18 @@ document.addEventListener('DOMContentLoaded', function() {
                         scales: {
                             x: {
                                 ticks: {
-                                    callback: (value) => xMap[value.toFixed(4)] || xMap[value.toFixed(2)] || xMap[value] || value
+                                    callback: robustTickCallback(xMap)
                                 }
                             },
                             y: {
                                 ticks: {
-                                    callback: (value) => yMap[value.toFixed(4)] || yMap[value.toFixed(2)] || yMap[value] || value
+                                    callback: robustTickCallback(yMap)
                                 }
                             }
                         }
                     };
+                    // --- END FIX ---
+
                     const scatterData = (data.analysis_type === 'regression') ? data.scatter_data : data.results.map(p => ({
                         x: p[0],
                         y: p[1]
@@ -136,6 +147,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             case 'kmeans':
                 {
+                    // The k-means chart logic remains the same, as it deals with clusters, not individual labels.
                     const k = parseInt(data.parameters.k);
                     const featureNames = data.parameters.features.split(',');
                     options = {
@@ -177,9 +189,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // --- FIX FOR BIVARIATE TABLE ---
-        // If the data is bivariate, transform its array-of-arrays format into an
-        // array-of-objects to match the regression data structure.
+        // This transform for Bivariate data is still necessary and correct.
         if (data.analysis_type === 'bivariate' && Array.isArray(dataForTable[0])) {
             const x_field = data.parameters.x_field;
             const y_field = data.parameters.y_field;
@@ -188,12 +198,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 [y_field]: row[1]
             }));
         }
-        // --- END BIVARIATE FIX ---
 
         const labelMaps = data.label_maps || {};
-        const groupMap = labelMaps.group || {};
-        const xMap = labelMaps.x_axis || {};
-        const yMap = labelMaps.y_axis || {};
         let headers = Object.keys(dataForTable[0]);
         let tableHTML = '<table class="table table-sm table-striped table-bordered">';
         tableHTML += `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>`;
@@ -202,21 +208,31 @@ document.addEventListener('DOMContentLoaded', function() {
             let rowData = headers.map(header => {
                 const rawValue = item[header];
                 let displayValue = rawValue;
+                let translationMap = null;
 
-                // --- FIX FOR VALUE '1' and ALL TRANSLATIONS ---
-                // This logic now robustly translates all applicable values.
+                // --- FINAL FIX: This logic now correctly finds the right map for ALL views ---
                 if (header === 'group') {
-                    displayValue = groupMap[rawValue] || rawValue;
-                } else if (header === data.parameters.x_field && typeof rawValue === 'number') {
-                    // Use a robust lookup that checks for different float/integer string representations
-                    displayValue = xMap[rawValue.toFixed(1)] || xMap[String(rawValue)] || xMap[rawValue] || rawValue;
-                } else if (header === data.parameters.y_field && typeof rawValue === 'number') {
-                    displayValue = yMap[rawValue.toFixed(1)] || yMap[String(rawValue)] || yMap[rawValue] || rawValue;
-                } else if (typeof rawValue === 'number') {
-                    // Format any remaining numbers (like danger_score or regression stats)
+                    translationMap = labelMaps.group;
+                } else if (header === data.parameters.x_field) {
+                    translationMap = labelMaps.x_axis;
+                } else if (header === data.parameters.y_field) {
+                    translationMap = labelMaps.y_axis;
+                } else {
+                    // This handles the K-Means case, where header name is the key.
+                    translationMap = labelMaps[header];
+                }
+
+                // If a map was found for the current column, use it to translate the value.
+                if (translationMap && rawValue !== null && rawValue !== undefined) {
+                    // Use the robust lookup to handle floating point vs. integer issues.
+                    const valueStr = String(rawValue);
+                    const valueAsFloat = parseFloat(valueStr);
+                    displayValue = translationMap[valueAsFloat.toFixed(1)] || translationMap[valueStr] || rawValue;
+                } else if (typeof rawValue === 'number' && header !== 'cluster' && header !== 'id') {
+                    // Format any other numbers that don't have a translation map.
                     displayValue = rawValue.toFixed(4);
                 }
-                // --- END TRANSLATION FIX ---
+                // --- END FINAL FIX ---
 
                 return `<td>${displayValue}</td>`;
             });
@@ -225,7 +241,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         tableHTML += '</tbody></table>';
         tableContainer.innerHTML = tableHTML;
-}
+    }
 
     function renderSummary(data) {
         summaryContainer.innerHTML = "";
