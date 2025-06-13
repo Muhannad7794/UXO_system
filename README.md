@@ -147,4 +147,4 @@ You should now be able to access the application and its components:
 
 ## ⚖️ License
 
-This project is licensed under the MIT License. See the `LICENSE` file for details.
+This project is licensed under custom license issued for this repo. For further details check the LICENSE file.
