@@ -7,14 +7,14 @@ from django.db.models import Avg, Count, Max, Min, Sum
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
-from drf_spectacular.utils import extend_schema, OpenApiParameter
-
-from reports.utils import get_annotated_uxo_queryset
-from uxo_records.models import UXORecord  # Ensure UXORecord is imported if not already
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
+from ..utils import get_annotated_uxo_queryset, ANNOTATION_MAP
+from uxo_records.models import UXORecord
 
 # --- CONFIGURATION ---
 
 AGGREGATION_MAP = {"avg": Avg, "max": Max, "min": Min, "sum": Sum, "count": Count}
+
 VALID_GROUPING_FIELDS = [
     "region__name",
     "ordnance_type",
@@ -23,16 +23,36 @@ VALID_GROUPING_FIELDS = [
     "proximity_to_civilians",
     "burial_status",
 ]
-VALID_NUMERIC_FIELDS = [
-    "danger_score",
-    "ordnance_type_numeric",
-    "ordnance_condition_numeric",
-    "burial_status_numeric",
-    "proximity_to_civilians_numeric",
-    "is_loaded_numeric",
-    "location__x",
-    "location__y",
-]
+VALID_NUMERIC_FIELDS = ["danger_score", "location__x", "location__y"]
+VALID_NUMERIC_FIELDS += list(ANNOTATION_MAP.keys())
+
+
+def _get_label_maps(field_name):
+    """
+    Helper function to get the human-readable labels for a given model field
+    that has 'choices' defined.
+    """
+    try:
+        # For annotated fields, we use our ANNOTATION_MAP
+        if field_name in ANNOTATION_MAP:
+            source_field_name, numeric_map = ANNOTATION_MAP[field_name]
+            # Get the choices from the original model field
+            choices = dict(UXORecord._meta.get_field(source_field_name).choices)
+            # Map the choice CODE to the full LABEL
+            # Then map the numeric value to that full LABEL
+            code_to_label_map = {str(k): v for k, v in choices.items()}
+            value_to_code_map = {str(float(v)): k for k, v in numeric_map.items()}
+            return {
+                num_val: code_to_label_map.get(code)
+                for num_val, code in value_to_code_map.items()
+            }
+
+        # For regular choice fields (like the group_by fields)
+        field = UXORecord._meta.get_field(field_name.replace("__name", ""))
+        if field.choices:
+            return dict(field.choices)
+    except (AttributeError, KeyError):
+        return None
 
 
 @extend_schema(
@@ -105,21 +125,44 @@ class StatisticsView(APIView):
     def get(self, request, *args, **kwargs):
         analysis_type = request.query_params.get("analysis_type")
 
-        # --- Dispatcher now includes all 5 analysis types ---
+        # 1. Prepare label maps based on the analysis type and its expected parameters.
+        #    This happens BEFORE the main logic is called.
+        label_maps = {}
+        if analysis_type == "grouped":
+            group_by_field = request.query_params.get("group_by")
+            label_maps["group"] = _get_label_maps(group_by_field)
+        elif analysis_type in ["bivariate", "regression"]:
+            x_field = request.query_params.get("x_field")
+            y_field = request.query_params.get("y_field")
+            label_maps["x_axis"] = _get_label_maps(x_field)
+            label_maps["y_axis"] = _get_label_maps(y_field)
+
+        # 2. Dispatch the request to the correct analysis method and capture the initial response.
         if analysis_type == "aggregate":
-            return self.perform_aggregate_analysis(request)
+            response = self.perform_aggregate_analysis(request)
         elif analysis_type == "grouped":
-            return self.perform_grouped_analysis(request)
+            response = self.perform_grouped_analysis(request)
         elif analysis_type == "bivariate":
-            return self.perform_bivariate_analysis(request)
+            response = self.perform_bivariate_analysis(request)
         elif analysis_type == "regression":
-            return self.perform_regression_analysis(request)
+            response = self.perform_regression_analysis(request)
         elif analysis_type == "kmeans":
-            return self.perform_kmeans_analysis(request)
+            response = self.perform_kmeans_analysis(request)
         else:
             return Response(
                 {"error": "Invalid or missing 'analysis_type' parameter."}, status=400
             )
+
+        # 3. If the analysis was successful, inject the generated label maps
+        #    into the response data before returning it.
+        if response.status_code == 200 and hasattr(response, "data"):
+            # Only add the label_maps key if we actually generated any non-empty maps
+            non_empty_maps = {k: v for k, v in label_maps.items() if v}
+            if non_empty_maps:
+                response.data["label_maps"] = non_empty_maps
+
+        # 4. Return the final, enhanced response object to the client.
+        return response
 
     def _validate_params(self, params, required_fields, valid_fields_map={}):
         """Helper function to validate query parameters."""

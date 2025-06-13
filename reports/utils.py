@@ -1,9 +1,9 @@
+# reports/utils.py
+
 from django.db.models import Case, When, Value, FloatField
 from uxo_records.models import UXORecord
 
-# --- NORMALIZATION MAPPING DICTIONARIES (from your danger_score_logic) ---
-# We define the numeric value for each category.
-
+# --- NORMALIZATION MAPPING DICTIONARIES ---
 ORDNANCE_TYPE_NUMERIC = {
     UXORecord.OrdnanceType.IED: 1.0,
     UXORecord.OrdnanceType.SUBMUNITION: 0.9,
@@ -37,6 +37,17 @@ PROXIMITY_NUMERIC = {
 
 IS_LOADED_NUMERIC = {True: 1.0, False: 0.2}
 
+# --- NEW: CONSOLIDATED ANNOTATION MAP ---
+# This dictionary maps the desired annotated field name to its source field
+# and its corresponding numeric mapping dictionary. This cleans up the logic.
+ANNOTATION_MAP = {
+    "ordnance_type_numeric": ("ordnance_type", ORDNANCE_TYPE_NUMERIC),
+    "ordnance_condition_numeric": ("ordnance_condition", ORDNANCE_CONDITION_NUMERIC),
+    "burial_status_numeric": ("burial_status", BURIAL_STATUS_NUMERIC),
+    "proximity_to_civilians_numeric": ("proximity_to_civilians", PROXIMITY_NUMERIC),
+    "is_loaded_numeric": ("is_loaded", IS_LOADED_NUMERIC),
+}
+
 
 def get_annotated_uxo_queryset():
     """
@@ -44,45 +55,15 @@ def get_annotated_uxo_queryset():
     for all major categorical attributes, enabling advanced statistical analysis.
     """
     queryset = UXORecord.objects.all()
+    annotations = {}
 
-    # Create a list of 'When' conditions for each categorical field
-    ordnance_type_cases = [
-        When(ordnance_type=key, then=Value(val))
-        for key, val in ORDNANCE_TYPE_NUMERIC.items()
-    ]
-    condition_cases = [
-        When(ordnance_condition=key, then=Value(val))
-        for key, val in ORDNANCE_CONDITION_NUMERIC.items()
-    ]
-    burial_cases = [
-        When(burial_status=key, then=Value(val))
-        for key, val in BURIAL_STATUS_NUMERIC.items()
-    ]
-    proximity_cases = [
-        When(proximity_to_civilians=key, then=Value(val))
-        for key, val in PROXIMITY_NUMERIC.items()
-    ]
-    is_loaded_cases = [
-        When(is_loaded=key, then=Value(val)) for key, val in IS_LOADED_NUMERIC.items()
-    ]
+    # Refactored to use the ANNOTATION_MAP for cleaner, more maintainable code
+    for numeric_field, (source_field, mapping) in ANNOTATION_MAP.items():
+        cases = [
+            When(**{source_field: key}, then=Value(val)) for key, val in mapping.items()
+        ]
+        annotations[numeric_field] = Case(
+            *cases, default=Value(0.0), output_field=FloatField()
+        )
 
-    # Annotate the queryset with the new numeric fields
-    annotated_queryset = queryset.annotate(
-        ordnance_type_numeric=Case(
-            *ordnance_type_cases, default=Value(0.0), output_field=FloatField()
-        ),
-        ordnance_condition_numeric=Case(
-            *condition_cases, default=Value(0.0), output_field=FloatField()
-        ),
-        burial_status_numeric=Case(
-            *burial_cases, default=Value(0.0), output_field=FloatField()
-        ),
-        proximity_to_civilians_numeric=Case(
-            *proximity_cases, default=Value(0.0), output_field=FloatField()
-        ),
-        is_loaded_numeric=Case(
-            *is_loaded_cases, default=Value(0.0), output_field=FloatField()
-        ),
-    )
-
-    return annotated_queryset
+    return queryset.annotate(**annotations)

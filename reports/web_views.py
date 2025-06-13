@@ -20,8 +20,19 @@ class StatisticsPageView(LoginRequiredMixin, View):
         return render(request, "reports/statistics_page.html", context)
 
     def _prepare_choices(self, field_list):
+        """
+        Helper method to turn a list of field names into a user-friendly format
+        for template dropdowns.
+        """
         choices = []
         for field in field_list:
-            display_name = field.replace("__", " ").replace("_", " ").title()
+            # Create a clean display name by removing suffixes and replacing underscores
+            display_name = (
+                field.replace("__name", "")
+                .replace("_numeric", "")
+                .replace("_val", "")
+                .replace("_", " ")
+                .title()
+            )
             choices.append({"value": field, "name": display_name})
         return choices
