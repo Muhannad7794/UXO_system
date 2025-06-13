@@ -178,6 +178,7 @@ SPECTACULAR_SETTINGS = {
         "- View UXO records across regions\n"
         "- View regional GIS data with danger scores\n"  # Added this
         "- Filter/search by region, ordnance type, and condition\n"
+        "- Generate visualized data-based reports built on different ML and statistical models\n"
         "- Create and manage UXO entries (authenticated users only)\n"
         "\nSecurity Note:\n"
         "Write operations (POST, PATCH, DELETE) require authentication."

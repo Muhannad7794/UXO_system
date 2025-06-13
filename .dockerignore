@@ -1,0 +1,61 @@
+# Ignore Python cache and bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ignore virtual environments
+.env
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+
+# Ignore Django DBs if not needed in container
+db.sqlite3
+db.sqlite3-journal
+
+# Ignore VSCode settings and local dev files
+.vscode/
+*.log
+*.bak
+
+# Ignore test outputs and coverage
+.coverage
+.coverage.*
+.pytest_cache/
+.tox/
+.nox/
+.cache/
+htmlcov/
+coverage/
+coverage.xml
+*.cover
+nosetests.xml
+
+# Ignore distribution/packaging
+*.egg
+*.egg-info/
+.eggs/
+dist/
+build/
+develop-eggs/
+downloads/
+sdist/
+wheels/
+share/python-wheels/
+
+# Ignore project-specific folders
+certificates/
+source_files/
+performance_reports/
+posters/
+gh_actions_reports/
+theory/
+
+# Ignore git and dockerignore themselves
+.git
+.gitignore
+.dockerignore

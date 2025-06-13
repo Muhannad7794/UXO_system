@@ -70,7 +70,6 @@ MEDIA_ROOT/
 posters/
 gh_actions_reports/
 theory/
-.dockerignore
 node_modules/
 *_.csv
 *.csv
