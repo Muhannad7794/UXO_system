@@ -43,73 +43,40 @@ PROXIMITY_SCORES = {
 }
 
 
+
 def calculate_danger_score(record: UXORecord) -> Optional[float]:
     """
     Calculates the danger score for a given UXORecord instance based on the
     new methodology: Risk = f(Threat, Vulnerability).
-
-    The function receives a UXORecord object and calculates a final score
-    by combining weighted sub-scores for Threat and Vulnerability.
-
-    Args:
-        record: A uxo_records.models.UXORecord instance.
-
-    Returns:
-        A float representing the calculated danger score, or None if the calculation fails.
     """
+    # This check is now the primary safety mechanism.
     if not isinstance(record, UXORecord):
         return None
 
-    try:
-        # --- 1. NORMALIZE ALL INPUT PARAMETERS ---
+    # --- 1. NORMALIZE PARAMETERS ---
+    # Safely get the numeric score for each parameter using .get() with a default value.
+    ordnance_type_score = ORDNANCE_TYPE_SCORES.get(record.ordnance_type, 0.0)
+    condition_score = ORDNANCE_CONDITION_SCORES.get(record.ordnance_condition, 0.0)
+    burial_status_score = BURIAL_STATUS_SCORES.get(record.burial_status, 0.0)
+    proximity_score = PROXIMITY_SCORES.get(record.proximity_to_civilians, 0.0)
+    is_loaded_score = 1.0 if record.is_loaded else 0.2
 
-        # Normalize threat parameters
-        ordnance_type_score = ORDNANCE_TYPE_SCORES.get(record.ordnance_type, 0.0)
-        condition_score = ORDNANCE_CONDITION_SCORES.get(record.ordnance_condition, 0.0)
-        burial_status_score = BURIAL_STATUS_SCORES.get(record.burial_status, 0.0)
-        # For the boolean 'is_loaded', the score is 1.0 for True, 0.2 for False.
-        # A non-loaded item still poses some risk (e.g., from hazardous materials).
-        is_loaded_score = 1.0 if record.is_loaded else 0.2
+    # --- 2. CALCULATE SUB-SCORES (THREAT & VULNERABILITY) ---
+    threat_weights = {
+        "ordnance_type": 0.4, "condition": 0.3, "is_loaded": 0.2, "burial_status": 0.1,
+    }
+    threat_score = (
+        (ordnance_type_score * threat_weights["ordnance_type"])
+        + (condition_score * threat_weights["condition"])
+        + (is_loaded_score * threat_weights["is_loaded"])
+        + (burial_status_score * threat_weights["burial_status"])
+    )
+    vulnerability_score = proximity_score
 
-        # Normalize vulnerability parameter
-        proximity_score = PROXIMITY_SCORES.get(record.proximity_to_civilians, 0.0)
+    # --- 3. CALCULATE THE FINAL DANGER SCORE ---
+    final_weights = {"threat": 0.6, "vulnerability": 0.4}
+    danger_score = (threat_score * final_weights["threat"]) + (
+        vulnerability_score * final_weights["vulnerability"]
+    )
 
-        # --- 2. CALCULATE SUB-SCORES (THREAT & VULNERABILITY) ---
-
-        # Define weights for each parameter within the ThreatScore
-        threat_weights = {
-            "ordnance_type": 0.4,
-            "condition": 0.3,
-            "is_loaded": 0.2,
-            "burial_status": 0.1,
-        }
-
-        # Calculate the weighted ThreatScore
-        threat_score = (
-            (ordnance_type_score * threat_weights["ordnance_type"])
-            + (condition_score * threat_weights["condition"])
-            + (is_loaded_score * threat_weights["is_loaded"])
-            + (burial_status_score * threat_weights["burial_status"])
-        )
-
-        # The VulnerabilityScore is currently determined solely by the proximity score.
-        # VulnerabilityScore = (proximity_score * 0.7) + (land_use_score * 0.3)
-        # Since land_use is omitted, proximity is the only factor.
-        vulnerability_score = proximity_score
-
-        # --- 3. CALCULATE THE FINAL DANGER SCORE ---
-
-        # Define the final weights for Threat vs. Vulnerability
-        final_weights = {"threat": 0.6, "vulnerability": 0.4}
-
-        # Calculate the final, aggregated DangerScore
-        danger_score = (threat_score * final_weights["threat"]) + (
-            vulnerability_score * final_weights["vulnerability"]
-        )
-
-        return round(danger_score, 4)
-
-    except Exception as e:
-        # Log the error for debugging purposes
-        print(f"Error calculating danger score for UXORecord ID {record.id}: {e}")
-        return None
+    return round(danger_score, 4)
