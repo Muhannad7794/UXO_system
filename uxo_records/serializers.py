@@ -35,7 +35,6 @@ class UXORecordSerializer(GeoFeatureModelSerializer):
 class UXORecordWriteSerializer(serializers.ModelSerializer):
     """
     A standard serializer for CREATING AND UPDATING UXORecord instances.
-    Used for POST, PUT, PATCH requests. drf-spectacular can handle this without errors.
     """
 
     location = GeometryField()
@@ -45,6 +44,7 @@ class UXORecordWriteSerializer(serializers.ModelSerializer):
         # List only the fields an admin should provide.
         # 'danger_score' and 'date_reported' are excluded because they are set automatically.
         fields = [
+            "id",
             "region",
             "ordnance_type",
             "ordnance_condition",
@@ -53,3 +53,5 @@ class UXORecordWriteSerializer(serializers.ModelSerializer):
             "burial_status",
             "location",
         ]
+
+    read_only_fields = ("id",)
