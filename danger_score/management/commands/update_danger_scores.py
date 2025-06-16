@@ -38,7 +38,7 @@ class Command(BaseCommand):
 
         updated_count = 0
         skipped_count = 0
-        # Use .iterator() to process records in chunks, which is memory-efficient
+        # Using .iterator() to process records in chunks, as it is memory-efficient
         record_iterator = UXORecord.objects.all().iterator(chunk_size=batch_size)
 
         for batch_of_records in self.queryset_iterator(record_iterator, batch_size):
@@ -63,7 +63,7 @@ class Command(BaseCommand):
                         )
                     )
 
-            # Now, update the entire batch in a single database query
+            # Update the entire batch in a single database query
             if records_to_update:
                 UXORecord.objects.bulk_update(records_to_update, ["danger_score"])
 

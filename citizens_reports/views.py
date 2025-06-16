@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema
 
 from .models import CitizenReport
-from uxo_records.models import UXORecord, Region  # Import Region for the spatial join
+from uxo_records.models import UXORecord, Region
 from .serializers import (
     CitizenReportSerializer,
     AdminCitizenReportSerializer,
@@ -52,7 +52,7 @@ class RetrieveDeleteCitizenReportView(generics.RetrieveDestroyAPIView):
     permission_classes = [permissions.IsAdminUser]
 
 
-# --- REFACTORED VERIFICATION VIEW ---
+# --- VERIFICATION VIEW ---
 class VerifyCitizenReportView(generics.GenericAPIView):
     """
     Admin-only view to verify a report.
@@ -61,15 +61,14 @@ class VerifyCitizenReportView(generics.GenericAPIView):
     """
 
     queryset = CitizenReport.objects.all()
-    serializer_class = ReportVerificationSerializer  # Use the new serializer
+    serializer_class = ReportVerificationSerializer
     permission_classes = [permissions.IsAdminUser]
 
     def get(self, request, *args, **kwargs):
         report = self.get_object()
-        # Instead of the serializer, we now pass our new Django Form to the template
         context = {
             "report": report,
-            "form": ReportVerificationForm(),  # <-- USE THE NEW FORM
+            "form": ReportVerificationForm(),
         }
         return render(request, "citizens_reports/verification_form.html", context)
 
@@ -187,7 +186,9 @@ class PendingReportsListView(LoginRequiredMixin, ListView):
 
     model = CitizenReport
     template_name = "citizens_reports/review_list.html"
-    context_object_name = "pending_reports"  # Name to use in the template loop
+    context_object_name = (
+        "pending_reports"  # Name for the list of reports in the html template
+    )
 
     def get_queryset(self):
         """

@@ -16,15 +16,16 @@ class CitizenReport(models.Model):
         ("rejected", "Rejected - Invalid Information"),
     ]
 
-    # === New Reporter Identity Fields ===
+    # === Reporter's Identity Fields ===
     name = models.CharField(max_length=100, help_text="First name of the reporter.")
     last_name = models.CharField(max_length=100, help_text="Last name of the reporter.")
-    # Using CharField for flexibility with different national ID formats.
-    # Added unique=True to prevent multiple pending reports from the same person.
+    # Using CharField for flexibility with different national ID formats in development context.
+    # For production, this should be a unique identifier like a national ID or passport number.
+    # Added unique=True to align with national ID rules.
     national_nr = models.CharField(
         max_length=50,
         unique=True,
-        help_text="National number or unique identifier for verification.",
+        help_text="National number as unique identifier for verification.",
     )
     phone_number = models.CharField(
         max_length=20,
@@ -33,12 +34,11 @@ class CitizenReport(models.Model):
     )
 
     # === GIS Integration ===
-    # Replaced the simple CharField with a PointField for accurate geospatial data.
     location = gis_models.PointField(
         help_text="The precise latitude and longitude of the reported UXO."
     )
 
-    # === Other Fields ===
+    # === Report Data Fields ===
     image = models.ImageField(
         upload_to="citizen_reports/",
         help_text="An image of the reported UXO provided by the citizen.",
@@ -55,9 +55,8 @@ class CitizenReport(models.Model):
     )
     date_reported = models.DateTimeField(auto_now_add=True)
 
-    # === New Tracking Field ===
+    # === Tracking Field ===
     # This links the report to the official UXORecord once it's verified.
-    # This is crucial for tracking and auditing.
     verified_record = models.ForeignKey(
         "uxo_records.UXORecord",
         on_delete=models.SET_NULL,  # If the UXORecord is deleted, keep the report but set this link to null.

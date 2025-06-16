@@ -2,13 +2,13 @@
 
 from django.contrib import admin
 
-# Use LeafletGeoAdmin for an interactive map widget
+# LeafletGeoAdmin for an interactive map widget
 from leaflet.admin import LeafletGeoAdmin
 from .models import CitizenReport
 
 
 @admin.register(CitizenReport)
-class CitizenReportAdmin(LeafletGeoAdmin):  # Inherit from LeafletGeoAdmin
+class CitizenReportAdmin(LeafletGeoAdmin):  # Inherits from LeafletGeoAdmin
     """
     Admin configuration for CitizenReport model.
     Includes an interactive map for the location field and displays all new fields.
@@ -30,7 +30,7 @@ class CitizenReportAdmin(LeafletGeoAdmin):  # Inherit from LeafletGeoAdmin
 
     # Settings for the Leaflet map widget
     settings_overrides = {
-        "DEFAULT_CENTER": (33.51, 36.27),  # Default center of the map (e.g., Damascus)
+        "DEFAULT_CENTER": (33.51, 36.27),  # Default center of the map (set to Damascus)
         "DEFAULT_ZOOM": 10,
     }
 

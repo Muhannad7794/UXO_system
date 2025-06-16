@@ -43,5 +43,5 @@ web_urlpatterns = [
     path("review/<int:pk>/reject/", RejectReportView.as_view(), name="reject-report"),
 ]
 
-# Combine the url lists to be discoverable by Django
+# Combines the url lists to be discoverable by Django
 urlpatterns = web_urlpatterns + api_urlpatterns

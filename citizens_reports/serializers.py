@@ -3,7 +3,7 @@
 from rest_framework import serializers
 from rest_framework_gis.serializers import GeometryField
 from .models import CitizenReport
-from uxo_records.models import UXORecord  # Import UXORecord to access its choices
+from uxo_records.models import UXORecord
 
 
 class CitizenReportSerializer(serializers.ModelSerializer):

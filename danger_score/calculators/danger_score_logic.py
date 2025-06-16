@@ -43,13 +43,12 @@ PROXIMITY_SCORES = {
 }
 
 
-
 def calculate_danger_score(record: UXORecord) -> Optional[float]:
     """
     Calculates the danger score for a given UXORecord instance based on the
     new methodology: Risk = f(Threat, Vulnerability).
     """
-    # This check is now the primary safety mechanism.
+    # This check is the primary safety mechanism.
     if not isinstance(record, UXORecord):
         return None
 
@@ -63,7 +62,10 @@ def calculate_danger_score(record: UXORecord) -> Optional[float]:
 
     # --- 2. CALCULATE SUB-SCORES (THREAT & VULNERABILITY) ---
     threat_weights = {
-        "ordnance_type": 0.4, "condition": 0.3, "is_loaded": 0.2, "burial_status": 0.1,
+        "ordnance_type": 0.4,
+        "condition": 0.3,
+        "is_loaded": 0.2,
+        "burial_status": 0.1,
     }
     threat_score = (
         (ordnance_type_score * threat_weights["ordnance_type"])
