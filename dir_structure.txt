@@ -80,7 +80,7 @@ UXO_system/
 │   │
 │   ├── tests/
 │   │   ├── factories.py
-│   │   ├── test_record_views.py
+│   │   ├── test_statistics_views.py
 │   │   ├── test_import_commands.py
 │   │
 │   ├── __init__.py
