@@ -37,9 +37,9 @@ PROXIMITY_NUMERIC = {
 
 IS_LOADED_NUMERIC = {True: 1.0, False: 0.2}
 
-# --- NEW: CONSOLIDATED ANNOTATION MAP ---
+# --- ANNOTATION MAP ---
 # This dictionary maps the desired annotated field name to its source field
-# and its corresponding numeric mapping dictionary. This cleans up the logic.
+# and its corresponding numeric mapping dictionary.
 ANNOTATION_MAP = {
     "ordnance_type_numeric": ("ordnance_type", ORDNANCE_TYPE_NUMERIC),
     "ordnance_condition_numeric": ("ordnance_condition", ORDNANCE_CONDITION_NUMERIC),
@@ -57,7 +57,7 @@ def get_annotated_uxo_queryset():
     queryset = UXORecord.objects.all()
     annotations = {}
 
-    # Refactored to use the ANNOTATION_MAP for cleaner, more maintainable code
+    # Using ANNOTATION_MAP for cleaner, more maintainable code
     for numeric_field, (source_field, mapping) in ANNOTATION_MAP.items():
         cases = [
             When(**{source_field: key}, then=Value(val)) for key, val in mapping.items()

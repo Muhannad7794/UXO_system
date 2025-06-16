@@ -13,7 +13,7 @@ def assign_danger_score_to_uxo_record(sender, instance, **kwargs):
     for a UXORecord instance before it is saved to the database.
     """
     try:
-        # Pass the instance directly to the new, updated danger score calculator
+        # Pass the instance directly to the danger score calculator
         calculated_score = danger_score_logic.calculate_danger_score(instance)
         instance.danger_score = calculated_score
     except Exception as e:

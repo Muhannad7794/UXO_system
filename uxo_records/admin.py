@@ -1,7 +1,7 @@
 # uxo_records/admin.py
 
 from django.contrib import admin
-from leaflet.admin import LeafletGeoAdmin  # For displaying map widgets
+from leaflet.admin import LeafletGeoAdmin
 from .models import Region, UXORecord
 
 
@@ -45,6 +45,6 @@ class UXORecordAdmin(LeafletGeoAdmin):
 
     # Settings for the Leaflet point map widget
     settings_overrides = {
-        "DEFAULT_CENTER": (33.85, 35.86),  # Default center of the map (e.g., Lebanon)
+        "DEFAULT_CENTER": (33.85, 35.86),  # Default center of the map
         "DEFAULT_ZOOM": 8,
     }

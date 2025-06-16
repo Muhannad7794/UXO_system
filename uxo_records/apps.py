@@ -8,4 +8,4 @@ class UxoRecordsConfig(AppConfig):
     name = "uxo_records"
 
     def ready(self):
-        import uxo_records.signals  # noqa
+        import uxo_records.signals

@@ -1,8 +1,6 @@
 from django.shortcuts import render
 from django.views.generic import View
 from django.contrib.auth.mixins import LoginRequiredMixin
-
-# This import is crucial. It must get the lists from your API view file.
 from .views.statistics_views import (
     VALID_GROUPING_FIELDS,
     VALID_NUMERIC_FIELDS,
@@ -26,7 +24,7 @@ class StatisticsPageView(LoginRequiredMixin, View):
         """
         choices = []
         for field in field_list:
-            # Create a clean display name by removing suffixes and replacing underscores
+            # Creates a clean display name by removing suffixes and replacing underscores
             display_name = (
                 field.replace("__name", "")
                 .replace("_numeric", "")

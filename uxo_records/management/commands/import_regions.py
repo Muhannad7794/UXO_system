@@ -6,7 +6,7 @@ from django.contrib.gis.geos import (
     GEOSGeometry,
     Polygon,
     MultiPolygon,
-)  # Import Polygon and MultiPolygon
+)
 from django.db import transaction
 from uxo_records.models import Region
 
@@ -58,7 +58,7 @@ class Command(BaseCommand):
 
                 parsed_geometry = GEOSGeometry(wkt_geometry, srid=4326)
 
-                # --- FIX: Check geometry type and convert if necessary ---
+                # --- Check geometry type and convert if necessary ---
                 if isinstance(parsed_geometry, Polygon):
                     # If it's a Polygon, wrap it in a MultiPolygon before saving.
                     geometry_to_save = MultiPolygon(parsed_geometry)

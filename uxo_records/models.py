@@ -93,8 +93,7 @@ class UXORecord(models.Model):
         choices=BurialStatus.choices,
         help_text="How exposed or buried is the ordnance?",
     )
-
-    # --- The Danger Score is now the last field as requested ---
+    # === DANGER SCORE ===
     danger_score = models.FloatField(
         null=True,
         blank=True,

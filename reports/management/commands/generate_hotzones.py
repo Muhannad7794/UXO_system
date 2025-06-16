@@ -17,8 +17,7 @@ class Command(BaseCommand):
         HotZone.objects.all().delete()
 
         # Step 2 & 3: Use a raw SQL query to perform clustering and generate convex hull polygons.
-        # This is much more efficient than pulling all points into Python.
-        # ST_ClusterDBSCAN groups points into clusters. We set a 5km distance (eps) and require min 5 points.
+        # ST_ClusterDBSCAN groups points into clusters.
         # ST_ConvexHull creates a polygon around each cluster of points.
         self.stdout.write("Clustering UXO records and generating polygons...")
         with connection.cursor() as cursor:

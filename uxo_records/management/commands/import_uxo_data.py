@@ -158,7 +158,7 @@ class Command(BaseCommand):
                     records_to_create = []
 
             except (ValueError, KeyError, TypeError) as e:
-                failed_rows.append((index + 2, str(e)))  # CSV row number and error
+                failed_rows.append((index + 2, str(e)))
             except Exception as e:
                 failed_rows.append((index + 2, f"An unexpected error occurred: {e}"))
 

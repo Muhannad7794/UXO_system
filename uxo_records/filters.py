@@ -36,14 +36,13 @@ class UXORecordFilter(django_filters.FilterSet):
         choices=UXORecord._meta.get_field("proximity_to_civilians").choices
     )
 
-    # --- Keep your existing custom filter for region name searching ---
+    # --- Custom filter for region name searching ---
     region = django_filters.CharFilter(
         field_name="region__name", lookup_expr="icontains"
     )
 
     class Meta:
         model = UXORecord
-        # The fields list now only needs to contain fields that don't have a custom definition above.
         fields = [
             "is_loaded",
         ]

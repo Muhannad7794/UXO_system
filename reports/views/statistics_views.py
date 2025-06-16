@@ -33,7 +33,7 @@ def _get_label_maps(field_name):
     that has 'choices' defined.
     """
     try:
-        # For annotated fields, we use our ANNOTATION_MAP
+        # For annotated fields, ANNOTATION_MAP form utils.py is used.
         if field_name in ANNOTATION_MAP:
             source_field_name, numeric_map = ANNOTATION_MAP[field_name]
             # Get the choices from the original model field
@@ -47,7 +47,7 @@ def _get_label_maps(field_name):
                 for num_val, code in value_to_code_map.items()
             }
 
-        # For regular choice fields (like the group_by fields)
+        # For regular model fields, we can directly access the field's choices.
         field = UXORecord._meta.get_field(field_name.replace("__name", ""))
         if field.choices:
             return dict(field.choices)
@@ -137,15 +137,14 @@ class StatisticsView(APIView):
             label_maps["x_axis"] = _get_label_maps(x_field)
             label_maps["y_axis"] = _get_label_maps(y_field)
         elif analysis_type == "kmeans":
-            # --- NEW: Add logic to get maps for K-Means features ---
+            # Add logic to get maps for K-Means features ---
             features_str = request.query_params.get("features", "")
             features = features_str.split(",")
             for feature in features:
-                # We will add a map for each feature that has one
+                # Add a map for each feature that has one
                 feature_map = _get_label_maps(feature)
                 if feature_map:
                     label_maps[feature] = feature_map
-            # --- END NEW ---
 
         # 2. Dispatch the request to the correct analysis method and capture the initial response.
         if analysis_type == "aggregate":
@@ -185,7 +184,7 @@ class StatisticsView(APIView):
                 return f"Unsupported value for '{field}'. Valid options are: {', '.join(valid_values)}"
         return None
 
-    # --- Aggregate Analysis (Restored) ---
+    # --- Aggregate Analysis ---
     def perform_aggregate_analysis(self, request):
         params = request.query_params
         error = self._validate_params(
@@ -214,7 +213,7 @@ class StatisticsView(APIView):
             }
         )
 
-    # --- Grouped Analysis (Unchanged) ---
+    # --- Grouped Analysis ---
     def perform_grouped_analysis(self, request):
         params = request.query_params
         error = self._validate_params(
@@ -254,7 +253,7 @@ class StatisticsView(APIView):
             {"analysis_type": "grouped", "parameters": params, "results": results_list}
         )
 
-    # --- Bivariate Analysis (Unchanged) ---
+    # --- Bivariate Analysis ---
     def perform_bivariate_analysis(self, request):
         params = request.query_params
         error = self._validate_params(
@@ -270,7 +269,7 @@ class StatisticsView(APIView):
             {"analysis_type": "bivariate", "parameters": params, "results": list(data)}
         )
 
-    # --- Regression Analysis (Unchanged) ---
+    # --- Regression Analysis ---
     def perform_regression_analysis(self, request):
         params = request.query_params
         error = self._validate_params(
@@ -305,7 +304,7 @@ class StatisticsView(APIView):
         }
         return Response(response_data)
 
-    # --- K-Means Clustering (The only new addition) ---
+    # --- K-Means Clustering ---
     def perform_kmeans_analysis(self, request):
         params = request.query_params
         try:

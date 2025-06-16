@@ -1,9 +1,9 @@
 # in uxo_records/views.py
 
 from rest_framework import viewsets, permissions
-from rest_framework.decorators import action  # <-- IMPORT THIS
-from rest_framework.response import Response  # <-- IMPORT THIS
-from rest_framework.pagination import PageNumberPagination  # Make sure this is imported
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 
@@ -33,7 +33,7 @@ class UXORecordViewSet(viewsets.ModelViewSet):
 
     queryset = UXORecord.objects.all().order_by("-danger_score", "-id")
     permission_classes = [permissions.IsAdminUser]
-    pagination_class = UXORecordPagination  # <-- Keep this for the main endpoint
+    pagination_class = UXORecordPagination
     filter_backends = [
         DjangoFilterBackend,
         filters.SearchFilter,
@@ -53,7 +53,6 @@ class UXORecordViewSet(viewsets.ModelViewSet):
             return UXORecordWriteSerializer
         return UXORecordSerializer
 
-    # v-- ADD THIS NEW METHOD --v
     @action(detail=False, methods=["get"], pagination_class=None)
     def all_records(self, request):
         """
@@ -91,7 +90,7 @@ class UXOBulkUploadView(APIView):
 
         # --- Create Reverse Mapping Dictionaries ---
         # This creates dictionaries to translate, e.g., "Artillery Projectile" -> "ART"
-        # We make it case-insensitive by converting keys to lowercase.
+        # It is made case-insensitive by converting keys to lowercase.
         ord_type_map = {
             label.lower(): value for value, label in UXORecord.OrdnanceType.choices
         }
@@ -108,7 +107,7 @@ class UXOBulkUploadView(APIView):
         try:
             decoded_file = file_obj.read().decode("utf-8")
             io_string = io.StringIO(decoded_file)
-            # We assume the CSV headers might have spaces or varied casing, so we clean them up.
+            # Assuming the CSV headers might have spaces or varied casing, this logic cleans them up.
             cleaned_headers = [h.strip().lower() for h in next(io_string).split(",")]
             io_string.seek(0)  # Reset buffer to the beginning
             next(io_string)  # Skip the original header row

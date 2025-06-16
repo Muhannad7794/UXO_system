@@ -38,7 +38,6 @@ class HeatmapView(APIView):
         return Response(heatmap_data)
 
 
-# --- DECORATOR ADDED TO FIX DOCUMENTATION ---
 @extend_schema(
     summary="Filter Records Within a Bounding Box",
     description="""
