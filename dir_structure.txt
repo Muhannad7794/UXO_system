@@ -26,6 +26,11 @@ UXO_system/
 │   ├── management/
 │   │       ├── commands/
 │   │              ├── update_danger_scores.py        # Triggered manually to calculate danger score for existing records
+│   ├── tests/
+│   │   ├── factories.py
+│   │   ├── test_danger_score_logic.py
+│   │   ├── test_update_danger_scores_command.py
+│   │
 │   ├── admin.py
 │   ├── apps.py
 │   ├── models.py
@@ -40,6 +45,11 @@ UXO_system/
 │   │              ├── __init__.py
 │   │              ├──import_regions.py
 │   │              ├──import_uxo_data.py
+│   ├── tests/
+│   │   ├── factories.py
+│   │   ├── test_record_views.py
+│   │   ├── test_import_commands.py
+│   │
 │   ├── __init__.py
 │   ├── admin.py
 │   ├── apps.py
@@ -67,6 +77,12 @@ UXO_system/
 │   │       └── js/
 │   │           ├──dashboard.js
 │   │           └──statistics.js
+│   │
+│   ├── tests/
+│   │   ├── factories.py
+│   │   ├── test_record_views.py
+│   │   ├── test_import_commands.py
+│   │
 │   ├── __init__.py
 │   ├── admin.py
 │   ├── apps.py
@@ -84,6 +100,7 @@ UXO_system/
 │   │        ├── js/
 │   │             ├── report_form.js
 │   │             └──review_list.js
+│   │
 │   ├── templates/
 │   │   └── citizens_reports/
 │   │       ├── partials/
@@ -92,6 +109,11 @@ UXO_system/
 │   │       ├── review_details.html
 │   │       ├── review_list.html
 │   │       ├── verification_form.html
+│   │
+│   ├── tests/
+│   │   ├── factories.py
+│   │   ├── test_reports_workflow.py
+│   │
 │   ├── __init__.py
 │   ├── admin.py
 │   ├── apps.py
