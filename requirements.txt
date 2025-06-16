@@ -3,7 +3,7 @@ attrs==25.3.0
 coverage==7.8.2
 Django==5.2.1
 djangorestframework==3.16.0
-djangorestframework-gis==1.0.0 # ADDED for GeoJSON support
+djangorestframework-gis==1.0.0 # Added for GeoJSON support
 django-filter==24.2
 django-leaflet==0.28.0
 django-htmx
@@ -15,14 +15,13 @@ iniconfig==2.1.0
 joblib==1.5.1
 jsonschema==4.23.0
 jsonschema-specifications==2025.4.1
-# mysqlclient==2.2.7 # REMOVED
 numpy==2.2.6
 openpyxl==3.1.5
 packaging==25.0
 pandas==2.2.3
 pillow==11.2.1
 pluggy==1.6.0
-psycopg2-binary==2.9.9 # ADDED for PostgreSQL
+psycopg2-binary==2.9.9 # Added for PostgreSQL
 pytest==8.3.5
 pytest-django==4.11.1
 python-dateutil==2.9.0.post0

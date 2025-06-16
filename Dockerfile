@@ -11,10 +11,9 @@ ENV PYTHONUNBUFFERED 1
 WORKDIR /UXO_system_dockerized_gis
 
 # First, copy only the requirements file to leverage Docker's layer caching.
-# Assumes requirements.txt is in the same directory as this Dockerfile.gis
 COPY ./requirements.txt .
 
-# Install system dependencies needed for GeoDjango (GDAL, GEOS, PROJ) and Python packages
+# Install system dependencies needed for GeoDjango (GDAL, GEOS, PROJ)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     binutils \
@@ -30,7 +29,5 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Now copy the rest of the application code into the container
+# Copy the rest of the application code into the container
 COPY . .
-
-# CMD is managed by docker-compose.gis.yml

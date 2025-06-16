@@ -30,13 +30,13 @@ urlpatterns = [
     # --- WEB PAGE URLS ---
     path("", views.index, name="index"),
     path("", include(citizens_web_urls)),
-    path("reports/", include(reports_web_urls)),  # Will create /reports/statistics/
+    path("reports/", include(reports_web_urls)),  # To create /reports/statistics/
     path("data-import/", DataImportView.as_view(), name="data-import-page"),
     # --- API ENDPOINTS ---
     path("api/v1/records/", include("uxo_records.urls")),
     path(
         "api/v1/reports/", include(reports_api_urls)
-    ),  # Will create /api/v1/reports/statistics/
+    ),  # To create /api/v1/reports/statistics/
     path("api/v1/citizen-reports/", include(citizens_api_urls)),
     # --- Schema & Docs ---
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),

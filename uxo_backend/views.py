@@ -44,9 +44,9 @@ class DataImportView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Check if the user is an admin/staff to be extra safe
+        # Check if the user is an admin/staff
         if not self.request.user.is_staff:
-            # You might want to handle this more gracefully, e.g., redirecting
+            # If not, raise a PermissionDenied exception
             raise PermissionDenied("You do not have access to this page.")
         context["title"] = "Bulk Data Import"
         return context

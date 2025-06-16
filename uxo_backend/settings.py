@@ -6,11 +6,7 @@ import sys
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
-# When using docker-compose with an env_file, these variables are already
-# in the container's environment, so os.getenv() will pick them up.
-# load_dotenv() here would primarily be for local development outside Docker
-# or if you specifically point it to .env.gis.
-load_dotenv()  # This will load from a file named '.env' by default if it exists.
+load_dotenv()  # This will load from '.env' by default if it exists.
 # For the GIS setup, docker-compose's env_file directive handles .env.gis.
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -23,9 +19,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
-# SECURITY WARNING: don't run with debug turned on in production!
-# Convert DEBUG to boolean, as os.getenv returns a string.
-DEBUG_STR = os.getenv("DJANGO_DEBUG", "False")  # Default to "False" if not set
+
+DEBUG_STR = os.getenv("DJANGO_DEBUG", "False")
 DEBUG = DEBUG_STR.lower() in ("true", "1", "t")
 
 
@@ -95,7 +90,6 @@ DATABASES = {
     "default": {
         # UPDATED: Engine to use PostGIS
         "ENGINE": "django.contrib.gis.db.backends.postgis",
-        # UPDATED: Environment variables to match your .env.gis for Azure
         "HOST": os.getenv("DB_HOST"),
         "USER": os.getenv("DB_USER"),
         "PASSWORD": os.getenv("DB_PASSWORD"),
@@ -142,7 +136,6 @@ USE_TZ = True
 STATIC_URL = "static/"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
-# Optional: Define STATIC_ROOT for collectstatic if you haven't already
 # STATIC_ROOT = BASE_DIR / "staticfiles"
 
 ## Login redirect URL
@@ -157,15 +150,15 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.SessionAuthentication",
-        "rest_framework.authentication.BasicAuthentication",  # Consider TokenAuthentication for more robust API security
+        "rest_framework.authentication.BasicAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.IsAuthenticatedOrReadOnly",  # Changed for more flexibility
+        "rest_framework.permissions.IsAuthenticatedOrReadOnly",
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     # Added default pagination for consistency
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
-    "PAGE_SIZE": 10,  # Default page size for pagination
+    "PAGE_SIZE": 10,
     # Default filters path
     "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
 }
@@ -176,7 +169,7 @@ SPECTACULAR_SETTINGS = {
         "API backend for the UXO Prioritization and Risk Assessment System.\n\n"
         "This API allows users to:\n"
         "- View UXO records across regions\n"
-        "- View regional GIS data with danger scores\n"  # Added this
+        "- View regional GIS data with danger scores\n"
         "- Filter/search by region, ordnance type, and condition\n"
         "- Generate visualized data-based reports built on different ML and statistical models\n"
         "- Create and manage UXO entries (authenticated users only)\n"
@@ -184,26 +177,19 @@ SPECTACULAR_SETTINGS = {
         "Write operations (POST, PATCH, DELETE) require authentication."
     ),
     "VERSION": "1.0.0",
-    "SCHEMA_PATH_PREFIX": "/api/v1",  # Ensure this matches your root API path
+    "SCHEMA_PATH_PREFIX": "/api/v1",
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
     "SERIALIZER_EXTENSIONS": {
         "rest_framework_gis.fields.GeometryField": "drf_spectacular.extensions.OpenApiSerializerFieldExtension",
     },
-    # DEFAULT_PAGINATION_CLASS and PAGE_SIZE are now in REST_FRAMEWORK settings
+    # DEFAULT_PAGINATION_CLASS and PAGE_SIZE
     "SWAGGER_UI_SETTINGS": {
         "deepLinking": True,
         "defaultModelRendering": "example",
-        "defaultModelsExpandDepth": -1,  # Changed from 1 to -1 to collapse models by default
+        "defaultModelsExpandDepth": -1,
         "docExpansion": "none",  # list, full, or none
         "filter": True,
         "persistAuthorization": True,
     },
 }
-
-# GDAL and GEOS library paths (Usually not needed if system libraries are installed correctly and on PATH)
-# However, if Django has trouble finding them, you might need to specify them.
-# Check your Dockerfile ensures GDAL, GEOS, PROJ are installed.
-# Example (uncomment and adjust if necessary, but try without first):
-# GDAL_LIBRARY_PATH = '/usr/lib/libgdal.so' # Path might vary
-# GEOS_LIBRARY_PATH = '/usr/lib/libgeos_c.so' # Path might vary
