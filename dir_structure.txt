@@ -37,7 +37,6 @@ UXO_system/
 │   ├── views.py
 │   ├── serializers.py
 │   ├── urls.py
-│   └── tests.py
 │
 ├── uxo_records/                     # Structured UXO data storage
 │   ├── management/
@@ -59,7 +58,6 @@ UXO_system/
 │   ├── serializers.py
 │   ├── signals.py                  # Triggers danger score calculation upon adding new record(s)
 │   ├── urls.py
-│   └── tests.py
 │
 ├── reports/
 │   ├── views/
@@ -87,11 +85,9 @@ UXO_system/
 │   ├── admin.py
 │   ├── apps.py
 │   ├── models.py                   # contains the HotZone model
-│   ├── views.py
 │   ├── web_views.py                # contains the view to serve the StatisticsPageView view from views/
 │   ├── urls.py
 │   ├── utils.py                    # contains the data annotation utility to create temporary "virtual" numeric fields at query time
-│   ├── tests.py
 │   ├── migrations/
 │
 ├── citizens_reports/               # Civilian-submitted UXO reports
@@ -122,7 +118,6 @@ UXO_system/
 │   ├── views.py
 │   ├── serializers.py
 │   ├── urls.py
-│   └── tests.py
 │
 └── templates/   
     ├── base.html
