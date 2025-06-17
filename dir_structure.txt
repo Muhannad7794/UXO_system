@@ -79,7 +79,7 @@ UXO_system/
 │   ├── tests/
 │   │   ├── factories.py
 │   │   ├── test_statistics_views.py
-│   │   ├── test_import_commands.py
+│   │   ├── test_geospatial_view.py
 │   │
 │   ├── __init__.py
 │   ├── admin.py
