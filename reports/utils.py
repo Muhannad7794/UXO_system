@@ -1,6 +1,7 @@
 # reports/utils.py
 
-from django.db.models import Case, When, Value, FloatField
+from django.db.models import Case, When, Value, FloatField, Func
+
 from uxo_records.models import UXORecord
 
 # --- NORMALIZATION MAPPING DICTIONARIES ---
@@ -52,7 +53,8 @@ ANNOTATION_MAP = {
 def get_annotated_uxo_queryset():
     """
     Returns the base UXORecord queryset with added 'virtual' numeric fields
-    for all major categorical attributes, enabling advanced statistical analysis.
+    for all major categorical attributes AND extracts latitude/longitude
+    from the location PointField.
     """
     queryset = UXORecord.objects.all()
     annotations = {}
@@ -65,5 +67,15 @@ def get_annotated_uxo_queryset():
         annotations[numeric_field] = Case(
             *cases, default=Value(0.0), output_field=FloatField()
         )
+
+    # --- Use Func() for version-agnostic coordinate extraction ---
+    # This directly calls the database's ST_X and ST_Y functions on the PointField.
+    # It avoids version-specific import paths for the X and Y helper classes.
+    annotations["longitude"] = Func(
+        "location", function="ST_X", output_field=FloatField()
+    )
+    annotations["latitude"] = Func(
+        "location", function="ST_Y", output_field=FloatField()
+    )
 
     return queryset.annotate(**annotations)

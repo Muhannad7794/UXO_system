@@ -4,6 +4,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.cluster import KMeans
 
 from django.db.models import Avg, Count, Max, Min, Sum
+from django.core.exceptions import FieldDoesNotExist
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
@@ -23,7 +24,9 @@ VALID_GROUPING_FIELDS = [
     "proximity_to_civilians",
     "burial_status",
 ]
-VALID_NUMERIC_FIELDS = ["danger_score", "location__x", "location__y"]
+# CORRECTED: Use 'longitude' and 'latitude' which are now annotated in utils.py
+# This keeps the names consistent with the original dataset.
+VALID_NUMERIC_FIELDS = ["danger_score", "longitude", "latitude"]
 VALID_NUMERIC_FIELDS += list(ANNOTATION_MAP.keys())
 
 
@@ -47,12 +50,14 @@ def _get_label_maps(field_name):
                 for num_val, code in value_to_code_map.items()
             }
 
-        # For regular model fields, we can directly access the field's choices.
+        # This will now correctly fail to find 'longitude' or 'latitude' as a real field
+        # and the except block will handle it gracefully.
         field = UXORecord._meta.get_field(field_name.replace("__name", ""))
         if field.choices:
             return dict(field.choices)
-    except (AttributeError, KeyError):
+    except (AttributeError, KeyError, FieldDoesNotExist):
         return None
+    return None
 
 
 @extend_schema(
@@ -95,12 +100,12 @@ A flexible endpoint to generate various statistics. Supports `aggregate`, `group
         OpenApiParameter(
             name="x_field",
             type=str,
-            description=f"Field for X-axis (bivariate/regression).",
+            description=f"Field for X-axis (bivariate/regression). e.g. longitude",
         ),
         OpenApiParameter(
             name="y_field",
             type=str,
-            description=f"Field for Y-axis (bivariate/regression).",
+            description=f"Field for Y-axis (bivariate/regression). e.g. latitude",
         ),
         OpenApiParameter(
             name="k", type=int, description="Number of clusters for K-Means analysis."
@@ -119,14 +124,12 @@ class StatisticsView(APIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
-        """The base for all queries is now the annotated queryset."""
+        """The base for all queries is now the annotated queryset from utils."""
         return get_annotated_uxo_queryset()
 
     def get(self, request, *args, **kwargs):
         analysis_type = request.query_params.get("analysis_type")
 
-        # 1. Prepare label maps based on the analysis type and its expected parameters.
-        #    This happens BEFORE the main logic is called.
         label_maps = {}
         if analysis_type == "grouped":
             group_by_field = request.query_params.get("group_by")
@@ -139,37 +142,37 @@ class StatisticsView(APIView):
         elif analysis_type == "kmeans":
             # Add logic to get maps for K-Means features ---
             features_str = request.query_params.get("features", "")
-            features = features_str.split(",")
-            for feature in features:
-                # Add a map for each feature that has one
-                feature_map = _get_label_maps(feature)
-                if feature_map:
-                    label_maps[feature] = feature_map
+            if features_str:
+                features = features_str.split(",")
+                for feature in features:
+                    feature_map = _get_label_maps(feature)
+                    if feature_map:
+                        label_maps[feature] = feature_map
 
-        # 2. Dispatch the request to the correct analysis method and capture the initial response.
-        if analysis_type == "aggregate":
-            response = self.perform_aggregate_analysis(request)
-        elif analysis_type == "grouped":
-            response = self.perform_grouped_analysis(request)
-        elif analysis_type == "bivariate":
-            response = self.perform_bivariate_analysis(request)
-        elif analysis_type == "regression":
-            response = self.perform_regression_analysis(request)
-        elif analysis_type == "kmeans":
-            response = self.perform_kmeans_analysis(request)
-        else:
+        # Dispatch the request to the correct analysis method
+        analysis_method_map = {
+            "aggregate": self.perform_aggregate_analysis,
+            "grouped": self.perform_grouped_analysis,
+            "bivariate": self.perform_bivariate_analysis,
+            "regression": self.perform_regression_analysis,
+            "kmeans": self.perform_kmeans_analysis,
+        }
+
+        analysis_method = analysis_method_map.get(analysis_type)
+
+        if not analysis_method:
             return Response(
                 {"error": "Invalid or missing 'analysis_type' parameter."}, status=400
             )
 
-        # 3. If the analysis was successful, inject the generated label maps
-        #    into the response data before returning it.
-        if response.status_code == 200 and hasattr(response, "data"):
+        response = analysis_method(request)
+
+        # Inject label maps into successful responses
+        if response.status_code == 200 and isinstance(response.data, dict):
             non_empty_maps = {k: v for k, v in label_maps.items() if v}
             if non_empty_maps:
                 response.data["label_maps"] = non_empty_maps
 
-        # 4. Return the final, enhanced response object to the client.
         return response
 
     def _validate_params(self, params, required_fields, valid_fields_map={}):
@@ -320,6 +323,7 @@ class StatisticsView(APIView):
                 },
                 status=400,
             )
+
         for feature in features:
             if feature not in VALID_NUMERIC_FIELDS:
                 return Response(
@@ -328,10 +332,10 @@ class StatisticsView(APIView):
                     },
                     status=400,
                 )
-        queryset = self.get_queryset().values(
-            *features, "id"
-        )  # Also get ID for reference
+
+        queryset = self.get_queryset().values(*features, "id")
         df = pd.DataFrame.from_records(queryset).dropna()
+
         if len(df) < k:
             return Response(
                 {
@@ -339,6 +343,7 @@ class StatisticsView(APIView):
                 },
                 status=400,
             )
+
         kmeans = KMeans(n_clusters=k, random_state=42, n_init="auto")
         cluster_data = df[features]
         df["cluster"] = kmeans.fit_predict(cluster_data)
