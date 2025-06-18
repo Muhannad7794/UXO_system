@@ -5,9 +5,9 @@ name: Django CI
 # Define the actions to run on specific events
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: [ "dev", "master" ]
   pull_request:
-    branches: [ "main", "master" ]
+    branches: [ "dev", "master" ]
   workflow_dispatch:
 
 jobs:
