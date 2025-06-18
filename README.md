@@ -197,4 +197,4 @@ You can click on either job to expand it and see a detailed, line-by-line log of
 
 ## ⚖️ License
 
-This project is licensed under custom license issued for this repo. For further details check the LICENSE file.
+This project is licensed under custom license issued for this repo. For further details check the LICENSE file.!
