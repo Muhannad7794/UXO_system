@@ -44,7 +44,7 @@ The system is architected as a Modular Monolith, providing clear separation of c
 ### ⚙️ DevOps & Professional Practices
 
 - **Containerized Environment**: The entire application stack is containerized with Docker and orchestrated with Docker Compose, ensuring a consistent and reproducible environment for development and deployment.
-- **CI/CD Pipeline**: A Continuous Integration pipeline using GitHub Actions automatically runs linters and executes the test suite, ensuring code quality and preventing regressions.
+- **CI/CD Pipeline**: A Continuous Integration pipeline using GitHub Actions automatically runs linters and executes the test suite, ensuring code quality and preventing regressions. Check section **8** for furhter information.
 - **Automated API Documentation**: Integrates `drf-spectacular` to automatically generate an OpenAPI 3.0 specification, providing interactive Swagger and Redoc API documentation.
 
 ---
@@ -144,6 +144,53 @@ You should now be able to access the application and its components:
 - **API Documentation (Swagger UI)**: [http://localhost:8001/api/docs/](http://localhost:8001/api/docs/)
 
 ---
+
+### 7. Testing & Continuois Integration
+This project uses a defined testing strategy and a professional CI pipeline to ensure code quality, reliability, and maintainability.
+
+#### Running Tests Locally
+You can execute the entire test suite using pytest inside the Docker container. This command will also generate a detailed test coverage report.
+
+- **Run the Test Suite**:
+From the project's root directory, run the command:
+
+```bash
+docker compose up exec backend_gis pytest
+```
+
+---
+This will run all unit and integration tests across the project. At the end of the run, you will see a text-based coverage report in the terminal. An htmlcov directory containing an interactive HTML report will also be generated.
+
+- **Viewing the Interactive Coverage Report**:
+For a more detailed and navigable view of the test coverage, you can serve the HTML report locally.
+
+### Prerequisites:
+
+- You must have the Live Server extension installed in Visual Studio Code.
+
+### Steps:
+
+- In VS Code, open the Ports tab (usually found in the bottom panel alongside the Terminal).  
+- Forward a new port by clicking the "Forward a Port" button and entering 5500.  
+- In the VS Code Explorer, find the htmlcov directory, right-click on the index.html file, and select "Open with Live Server".
+- A new browser tab will open. Navigate to the URL provided by Live Server (usually http://127.0.0.1:5500/ or http://localhost:5500/).
+- You can now click through the interactive report to see line-by-line coverage for every file in the project.
+
+### 8. Continuous Integration (CI) Workflow
+The project is equipped with a CI pipeline using GitHub Actions, which automatically verifies the quality of all code pushed to the repository.
+
+- **Navigate to GitHub Actions**:
+Go to the main page of the project's GitHub repository and click on the "Actions" tab.
+
+- **View Workflow Runs**:
+On the left sidebar, you will see the "Django CI" workflow. The main panel will show a list of all the times this workflow has run, triggered by pushes or pull requests.
+
+- **Inspect a Specific Run**:
+Click on a specific workflow run to see its summary. You will see the two parallel jobs defined in our pipeline:
+ - Lint & Format Check: Verifies that the code adheres to flake8 and black standards.
+ - Run Tests: Executes the entire pytest suite against the live Azure database.
+
+You can click on either job to expand it and see a detailed, line-by-line log of every command that was executed, including the full pytest output and the final test coverage report.
 
 ## ⚖️ License
 
