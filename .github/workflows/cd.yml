@@ -67,16 +67,15 @@ jobs:
             echo "DB_PORT=${{ secrets.DB_PORT }}" >> .env.gis
             echo "DB_HOST=${{ secrets.DB_HOST }}" >> .env.gis
 
-            # 3. Log in to Azure Container Registry
-            docker login ${{ secrets.ACR_LOGIN_SERVER }} -u ${{ secrets.ACR_USERNAME }} -p ${{ secrets.ACR_PASSWORD }}
+            # 3. CORRECTED: Log in to Azure Container Registry using sudo
+            sudo docker login ${{ secrets.ACR_LOGIN_SERVER }} -u ${{ secrets.ACR_USERNAME }} -p ${{ secrets.ACR_PASSWORD }}
 
-            # 4. Pull the latest image
-            docker pull ${{ secrets.ACR_LOGIN_SERVER }}/uxo-system-backend:latest
+            # 4. CORRECTED: Pull the latest image using sudo
+            sudo docker pull ${{ secrets.ACR_LOGIN_SERVER }}/uxo-system-backend:latest
             
-            # 5. FIXED: Run database migrations using the new image
-            # This command starts a temporary container to run migrate and then removes it.
-            docker run --rm --env-file ./.env.gis ${{ secrets.ACR_LOGIN_SERVER }}/uxo-system-backend:latest python manage.py migrate --no-input
+            # 5. CORRECTED: Run database migrations using the new image with sudo
+            sudo docker run --rm --env-file ./.env.gis ${{ secrets.ACR_LOGIN_SERVER }}/uxo-system-backend:latest python manage.py migrate --no-input
 
-            # 6. FIXED: Stop old services and start the new ones using the production compose file
-            docker compose -f docker-compose.prod.yml down
-            docker compose -f docker-compose.prod.yml up -d
+            # 6. CORRECTED: Stop and start services using the production compose file with sudo
+            sudo docker compose -f docker-compose.prod.yml down
+            sudo docker compose -f docker-compose.prod.yml up -d
