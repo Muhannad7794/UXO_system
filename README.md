@@ -164,11 +164,11 @@ This will run all unit and integration tests across the project. At the end of t
 - **Viewing the Interactive Coverage Report**:
 For a more detailed and navigable view of the test coverage, you can serve the HTML report locally.
 
-### Prerequisites:
+#### Prerequisites:
 
 - You must have the Live Server extension installed in Visual Studio Code.
 
-### Steps:
+#### Steps:
 
 - In VS Code, open the Ports tab (usually found in the bottom panel alongside the Terminal).  
 - Forward a new port by clicking the "Forward a Port" button and entering 5500.  
@@ -180,12 +180,15 @@ For a more detailed and navigable view of the test coverage, you can serve the H
 The project is equipped with a CI pipeline using GitHub Actions, which automatically verifies the quality of all code pushed to the repository.
 
 - **Navigate to GitHub Actions**:
+
 Go to the main page of the project's GitHub repository and click on the "Actions" tab.
 
 - **View Workflow Runs**:
+
 On the left sidebar, you will see the "Django CI" workflow. The main panel will show a list of all the times this workflow has run, triggered by pushes or pull requests.
 
 - **Inspect a Specific Run**:
+
 Click on a specific workflow run to see its summary. You will see the two parallel jobs defined in our pipeline:
  - Lint & Format Check: Verifies that the code adheres to flake8 and black standards.
  - Run Tests: Executes the entire pytest suite against the live Azure database.
