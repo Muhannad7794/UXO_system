@@ -1,6 +1,6 @@
 # .github/workflows/ci.yml
 
-name: Django CI
+name: CI
 
 # Define the actions to run on specific events
 on:
