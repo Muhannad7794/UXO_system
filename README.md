@@ -181,17 +181,17 @@ The project is equipped with a CI pipeline using GitHub Actions, which automatic
 
 - **Navigate to GitHub Actions**:
 
-Go to the main page of the project's GitHub repository and click on the "Actions" tab.
+  Go to the main page of the project's GitHub repository and click on the "Actions" tab.
 
 - **View Workflow Runs**:
 
-On the left sidebar, you will see the "Django CI" workflow. The main panel will show a list of all the times this workflow has run, triggered by pushes or pull requests.
+  On the left sidebar, you will see the "Django CI" workflow. The main panel will show a list of all the times this workflow has run, triggered by pushes or pull requests.
 
 - **Inspect a Specific Run**:
 
-Click on a specific workflow run to see its summary. You will see the two parallel jobs defined in our pipeline:
- - Lint & Format Check: Verifies that the code adheres to flake8 and black standards.
- - Run Tests: Executes the entire pytest suite against the live Azure database.
+  Click on a specific workflow run to see its summary. You will see the two parallel jobs defined in our pipeline:
+  - Lint & Format Check: Verifies that the code adheres to flake8 and black standards.
+  - Run Tests: Executes the entire pytest suite against the live Azure database.
 
 You can click on either job to expand it and see a detailed, line-by-line log of every command that was executed, including the full pytest output and the final test coverage report.
 
