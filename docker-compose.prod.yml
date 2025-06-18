@@ -1,0 +1,23 @@
+# docker-compose.prod.yml
+
+services:
+  backend_gis:
+    # NOTE: No 'build' section. The image is pulled from the registry.
+    image: ${{ secrets.ACR_LOGIN_SERVER }}/uxo-system-backend:latest
+    container_name: uxo_system_prod_container
+    
+    # Starts Gunicorn to serve your Django app.
+    command: gunicorn uxo_backend.wsgi:application --bind 0.0.0.0:8000
+
+    # NOTE: The development volume for code is removed.
+    # The code is baked into the Docker image.
+    volumes:
+      # Only need a volume for user-uploaded media files now.
+      - ./media:/UXO_system_dockerized_gis/media
+
+    ports:
+      # Mapping port 80 (standard HTTP) on the host to port 8000 in the container.
+      - "80:8000"
+    
+    env_file:
+      - .env.gis

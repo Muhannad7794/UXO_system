@@ -1,6 +1,6 @@
 # .github/workflows/ci.yml
 
-name: Django CI
+name: CI
 
 # Define the actions to run on specific events
 on:
@@ -47,7 +47,7 @@ jobs:
         # Set the environment variables for the backend service
         run: |
           echo "DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}" >> .env.gis
-          echo "DJANGO_DEBUG=${{ secrets.DJANGO_DEBUG }}" >> .env.gis
+          echo "DJANGO_DEBUG=True" >> .env.gis
           echo "DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1" >> .env.gis
           echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env.gis
           echo "DB_USER=${{ secrets.DB_USER }}" >> .env.gis

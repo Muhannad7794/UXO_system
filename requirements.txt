@@ -54,3 +54,6 @@ Faker
 # CI/CD
 black==24.4.2
 flake8==7.1.0
+# Production dependencies
+gunicorn
+whitenoise

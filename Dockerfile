@@ -31,3 +31,5 @@ RUN apt-get update && \
 
 # Copy the rest of the application code into the container
 COPY . .
+
+RUN python manage.py collectstatic --no-input

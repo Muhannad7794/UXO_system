@@ -1,3 +1,4 @@
+# uxo_backend/settings.py
 from pathlib import Path
 import os
 import sys
@@ -27,6 +28,13 @@ DEBUG = DEBUG_STR.lower() in ("true", "1", "t")
 ALLOWED_HOSTS_STR = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
 ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_STR.split(",") if host.strip()]
 
+CSRF_TRUSTED_ORIGINS_STR = os.environ.get(
+    "CSRF_TRUSTED_ORIGINS", "http://localhost:8001,http://127.0.0.1:8001"
+)
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip() for origin in CSRF_TRUSTED_ORIGINS_STR.split(",")
+]
+
 
 # Application definition
 
@@ -53,6 +61,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -136,7 +145,7 @@ USE_TZ = True
 STATIC_URL = "static/"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
-# STATIC_ROOT = BASE_DIR / "staticfiles"
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Login redirect URL
 LOGIN_REDIRECT_URL = "/"
