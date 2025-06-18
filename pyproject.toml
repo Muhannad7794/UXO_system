@@ -1,0 +1,19 @@
+[tool.black]
+# Set the line length to 88 characters, the standard for black.
+line-length = 88
+# Specify Python 3.11 compatibility.
+target-version = ['py311']
+
+# Define files/directories to exclude from formatting.
+exclude = '''
+(
+  /(
+      \.git
+    | \.pytest_cache
+    | __pycache__
+    | migrations
+    | htmlcov
+    | venv
+  )/
+)
+'''

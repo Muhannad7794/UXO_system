@@ -85,7 +85,7 @@ A flexible endpoint to generate various statistics. Supports `aggregate`, `group
         OpenApiParameter(
             name="group_by",
             type=str,
-            description=f"Field to group by for 'grouped' analysis.",
+            description="Field to group by for 'grouped' analysis.",
         ),
         OpenApiParameter(
             name="aggregate_op",
@@ -100,12 +100,12 @@ A flexible endpoint to generate various statistics. Supports `aggregate`, `group
         OpenApiParameter(
             name="x_field",
             type=str,
-            description=f"Field for X-axis (bivariate/regression). e.g. longitude",
+            description="Field for X-axis (bivariate/regression). e.g. longitude",
         ),
         OpenApiParameter(
             name="y_field",
             type=str,
-            description=f"Field for Y-axis (bivariate/regression). e.g. latitude",
+            description="Field for Y-axis (bivariate/regression). e.g. latitude",
         ),
         OpenApiParameter(
             name="k", type=int, description="Number of clusters for K-Means analysis."

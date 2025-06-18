@@ -1,0 +1,84 @@
+# .github/workflows/ci.yml
+
+name: Django CI
+
+# Controls when the workflow will run
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  # This job checks code quality with flake8 and black
+  lint-and-format:
+    name: Lint & Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Flake8
+        run: flake8 .
+
+      - name: Run Black Check
+        run: black --check .
+
+  # This job runs the test suite against the Azure database
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: lint-and-format
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Create .env.gis file from secrets
+        # CORRECTED: This now uses your exact variable names and structure,
+        # including the DB_HOST from your secrets.
+        run: |
+          echo "DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}" >> .env.gis
+          echo "DJANGO_DEBUG=${{ secrets.DJANGO_DEBUG }}" >> .env.gis
+          echo "DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1" >> .env.gis
+          echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env.gis
+          echo "DB_USER=${{ secrets.DB_USER }}" >> .env.gis
+          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env.gis
+          echo "DB_PORT=${{ secrets.DB_PORT }}" >> .env.gis
+          echo "DB_HOST=${{ secrets.DB_HOST }}" >> .env.gis
+
+      - name: Build and Run Backend Service
+        # We only start the single backend_gis service
+        run: docker compose -f docker-compose.yml up -d --build backend_gis
+
+      - name: Wait for Azure Database to be Ready
+        # This step is crucial. It waits for the application container to be
+        # fully up and running before trying to execute commands inside it.
+        run: |
+          echo "Waiting for backend container to start..."
+          sleep 15 # Give the container a few seconds to initialize
+          
+          echo "Checking connection to Azure PostgreSQL..."
+          # We execute a check from *within* the running container
+          until docker compose exec -T backend_gis python -c "import socket;s = socket.socket(socket.AF_INET, socket.SOCK_STREAM);s.settimeout(1);s.connect(('${{ secrets.DB_HOST }}', ${{ secrets.DB_PORT }}));s.close()"
+          do
+            echo "Waiting for database..."
+            sleep 2
+          done
+          echo "Azure PostgreSQL is reachable!"
+
+      - name: Run Database Migrations
+        run: docker compose exec -T backend_gis python manage.py migrate
+
+      - name: Run Pytest
+        run: docker compose exec -T backend_gis pytest
+

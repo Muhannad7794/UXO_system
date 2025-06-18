@@ -16,7 +16,6 @@ from django.views import View
 from django.shortcuts import render
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.gis.geos import Point
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView, DetailView
@@ -135,7 +134,7 @@ class VerifyCitizenReportView(generics.GenericAPIView):
             )
 
 
-## ==== Web Views to serve the Frontend ====
+# ==== Web Views to serve the Frontend ====
 class CitizenReportFormView(View):
     """
     Handles the submission from the public-facing HTML form.

@@ -51,3 +51,6 @@ pytest-cov
 pytest-mock
 factory-boy
 Faker
+# CI/CD
+black==24.4.2
+flake8==7.1.0

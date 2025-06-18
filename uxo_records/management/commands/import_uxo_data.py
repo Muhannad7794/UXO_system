@@ -65,7 +65,7 @@ class Command(BaseCommand):
         )
 
     @transaction.atomic
-    def handle(self, *args, **options):
+    def handle(self, *args, **options):  # noqa: C901
         csv_file_path = options["csv_file_path"]
         clear_data = options["clear"]
         batch_size = options["batch_size"]
@@ -171,11 +171,6 @@ class Command(BaseCommand):
 
         # --- FINAL REPORT ---
         self.stdout.write(self.style.SUCCESS("\nImport process complete."))
-        total_created = (
-            UXORecord.objects.count()
-            if not clear_data
-            else df.shape[0] - len(failed_rows)
-        )
         self.stdout.write(f"Total UXO Records in database: {UXORecord.objects.count()}")
 
         if failed_rows:

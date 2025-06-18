@@ -1,0 +1,19 @@
+[flake8]
+# A list of error codes to ignore.
+# E501: line too long (handled by black)
+# W503: line break before binary operator (black prefers this)
+# F401: unused import (can be noisy during development, but you can remove this for stricter checks)
+ignore = E501, W503, F401
+
+# Define files/directories to exclude from linting.
+exclude =
+    .git,
+    __pycache__,
+    migrations,
+    .pytest_cache,
+    htmlcov,
+    venv
+
+# Set the maximum complexity for functions.
+# A lower number forces simpler, more maintainable code.
+max-complexity = 10

@@ -30,7 +30,7 @@ def index(request):
     return render(request, "index.html", context)
 
 
-## Logout view
+# Logout view
 def logout_view(request):
     """
     Logs the user out and redirects to the homepage.
