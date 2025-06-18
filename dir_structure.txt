@@ -80,6 +80,7 @@ UXO_system/
 │   │   ├── factories.py
 │   │   ├── test_statistics_views.py
 │   │   ├── test_geospatial_view.py
+│   │   └── test_generate_hotzones_command.py
 │   │
 │   ├── __init__.py
 │   ├── admin.py

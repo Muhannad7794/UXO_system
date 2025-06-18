@@ -69,7 +69,6 @@ class GeospatialViewTests(APITestCase):
         features = response.data.get("features", [])
         self.assertEqual(len(features), 3)
 
-        # CORRECTED: The feature 'id' is at the top level, not inside 'properties'.
         returned_ids = {item["id"] for item in features}
         self.assertIn(self.record_inside.id, returned_ids)
         self.assertIn(self.record_also_inside.id, returned_ids)
@@ -103,12 +102,8 @@ class GeospatialViewTests(APITestCase):
         response = self.client.get(self.hotzone_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-        # CORRECTED: The serializer returns a GeoJSON FeatureCollection dictionary.
-        # We need to access the 'features' list within it.
         features = response.data.get("features", [])
         self.assertEqual(len(features), 1)
-
-        # CORRECTED: The feature 'id' is at the top level, not inside 'properties'.
         our_hotzone_data = features[0]
         self.assertEqual(our_hotzone_data["id"], self.hotzone.id)
         self.assertEqual(our_hotzone_data["properties"]["record_count"], 25)

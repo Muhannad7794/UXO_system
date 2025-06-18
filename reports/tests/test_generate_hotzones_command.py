@@ -45,9 +45,6 @@ class GenerateHotZonesCommandTests(TestCase):
 
         self.assertIsNotNone(hotzone_cluster_2)
         self.assertEqual(hotzone_cluster_2.record_count, 4)
-
-        # CORRECTED: Instead of checking for a magic number, we validate the score's
-        # properties. This is a more robust test.
         self.assertIsInstance(hotzone_cluster_2.avg_danger_score, float)
         self.assertTrue(0.0 <= hotzone_cluster_2.avg_danger_score <= 1.0)
 

@@ -94,7 +94,7 @@ class StatisticsViewTests(APITestCase):
         """
         params = {
             "analysis_type": "aggregate",
-            "numeric_field": "danger_score",  # Changed from "id" to pass validation
+            "numeric_field": "danger_score",
             "operation": "count",
         }
         response = self.client.get(self.url, params)
