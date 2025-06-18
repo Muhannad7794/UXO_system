@@ -2,8 +2,9 @@
 
 services:
   backend_gis:
-    # NOTE: No 'build' section. The image is pulled from the registry.
-    image: ${{ secrets.ACR_LOGIN_SERVER }}/uxo-system-backend:latest
+    # Use a standard environment variable that Docker Compose understands.
+    # This variable will be set by our deployment script.
+    image: ${PROD_IMAGE_NAME}
     container_name: uxo_system_prod_container
     
     # Starts Gunicorn to serve your Django app.
