@@ -195,6 +195,20 @@ The project is equipped with a CI pipeline using GitHub Actions, which automatic
 
 You can click on either job to expand it and see a detailed, line-by-line log of every command that was executed, including the full pytest output and the final test coverage report.
 
+### 9. Continuous Delivery & Deployment (Cd) Workflow
+The project is deployed on a complete production environment. The project is accessible on the adrres (http://172.160.241.20/)
+
+#### Tech Stack & Workflow
+
+- **Docker**: a dedicated docker-compose file ***docker-compose-pod.yml*** is setup to orchestrate the DC process and give the core structure to the Linux builder on GitHub Actions. This structure is mapped across the jobs in GitHub Actions' CD workflow.
+
+- **GitHub Actions**: The project utilizes GiHub Actions' workflows to automate delivery and deployment using the ***cd.yaml*** workflow, where multipe jobs are specified to build and push the project's docker image then deploy it.
+
+- **Azure Container Registry (ACR)**: Is used to host th project's Docker image on a cloud service (Azure). This job makes the process of having a containerized well maintained blueprint of the project available and accessible for deployment or on the cloud, or clonin gthe development environment on other devices.
+
+- **Azure Virtual Machine (AVM)**: Is used to host the app and making it accessibale on the web. AVM provides public IP to act as the project's host on the production environment.
+
+
 ## ⚖️ License
 
 This project is licensed under custom license issued for this repo. For further details check the LICENSE file.
