@@ -1,9 +1,15 @@
 UXO_system/
+├── .github/
+│    ├── workflows/
+│        ├──cd.yml
+│        ├──ci.yml
+│
 ├── .dockerignore
 ├── .env                             # Environment variables for Docker and Django
 ├── .gitignore                       # Git ignore rules (e.g., __pycache__, .env)
 ├── dir_structure_txt  
-├── docker-compose.yml               # Service orchestration: backend + DB                     
+├── docker-compose.yml               # Service orchestration: backend + DB
+├── docker-compose.prod.yml          # orchestrates CD workflow for deployment to production
 ├── Dockerfile                       # Backend Docker image definition
 ├── manage.py                        # Django entry point
 ├── README.md                        # Project overview and documentation

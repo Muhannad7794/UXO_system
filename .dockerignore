@@ -48,12 +48,8 @@ wheels/
 share/python-wheels/
 
 # Ignore project-specific folders
-certificates/
-source_files/
 performance_reports/
-posters/
 gh_actions_reports/
-theory/
 
 # Ignore git and dockerignore themselves
 .git
