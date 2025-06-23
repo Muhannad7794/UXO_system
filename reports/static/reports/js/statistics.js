@@ -107,10 +107,22 @@ document.addEventListener('DOMContentLoaded', function() {
                     };
                     // --- END FIX ---
 
-                    const scatterData = (data.analysis_type === 'regression') ? data.scatter_data : data.results.map(p => ({
-                        x: p[0],
-                        y: p[1]
-                    }));
+                    let scatterData;
+                    if (data.analysis_type === 'regression') {
+                        // For REGRESSION, the data is an array of objects. Map it using the field names.
+                        const x_field = data.parameters.x_field;
+                        const y_field = data.parameters.y_field;
+                        scatterData = data.scatter_data.map(p => ({
+                            x: p[x_field],
+                            y: p[y_field]
+                        }));
+                    } else { 
+                        // For BIVARIATE, the data is an array of arrays. Map it using indexes.
+                        scatterData = data.results.map(p => ({
+                            x: p[0],
+                            y: p[1]
+                        }));
+                    }
                     chartData = {
                         datasets: [{
                             type: 'scatter',
@@ -124,7 +136,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             slope,
                             intercept
                         } = data.statistics;
-                        const xValues = scatterData.map(p => p[data.parameters.x_field]);
+                        const xValues = scatterData.map(p => p.x);
                         const xMin = Math.min(...xValues);
                         const xMax = Math.max(...xValues);
                         chartData.datasets.push({
